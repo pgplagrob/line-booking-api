@@ -1,0 +1,13 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+# Local assistant/editor metadata
+.agents/
+.claude/
+.windsurf/
+
+# Nested clone of the remote repository
+line-booking-api/
+
+/src/generated/prisma

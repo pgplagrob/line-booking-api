@@ -11,3 +11,43 @@ generator client {
 datasource db {
   provider = "sqlite"
 }
+
+model User {
+  id        Int       @id @default(autoincrement())
+  lineUserId String   @unique
+  displayName String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  bookings Booking[]
+}
+
+model Slot {
+  id        Int       @id @default(autoincrement())
+  startAt   DateTime
+  endAt     DateTime
+  capacity  Int       @default(1)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  bookings Booking[]
+
+  @@index([startAt])
+}
+
+model Booking {
+  id          Int      @id @default(autoincrement())
+  bookingCode String   @unique
+  userId      Int
+  slotId      Int
+  status      String   @default("CONFIRMED")
+  note        String?
+  createdAt   DateTime @default(now())
+  cancelledAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+  slot Slot @relation(fields: [slotId], references: [id])
+
+  @@index([userId])
+  @@index([slotId, status])
+}

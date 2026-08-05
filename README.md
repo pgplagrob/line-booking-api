@@ -1,139 +1,146 @@
-# LINE Bot Backend
+# LINE Booking API POC
 
-โปรเจกต์ฝึกสร้าง LINE Bot Backend ด้วย Express, TypeScript, Prisma และ SQLite ตั้งแต่การตั้งค่าเซิร์ฟเวอร์ ไปจนถึง Webhook, Flex Message และ Push Notification
+ระบบต้นแบบสำหรับจองคิวผ่าน LINE Official Account โดยใช้ Node.js Backend, REST API, Prisma และ SQLite
 
-## สถานะปัจจุบัน
+## ภาพรวมระบบ
 
-**Day 1 — ทำเสร็จแล้วประมาณครึ่งหนึ่ง**
+```text
+ผู้ใช้
+  ↓
+LINE Official Account
+  ↓
+LINE Messaging API
+  ↓
+Node.js + Express Backend
+  ├── Webhook
+  ├── Booking Service
+  ├── Slot Service
+  └── LINE Service
+        ↓
+      Prisma
+        ↓
+      SQLite
+```
 
-เซิร์ฟเวอร์ Express เปิดและทดสอบผ่าน `http://localhost:3000` แล้ว ขั้นตอนถัดไปคือสร้าง Task Model, รัน Migration และเปิดดูตาราง SQLite ด้วย Prisma Studio
+## แผนการทำ POC ทั้งหมด 11 Steps
 
-## แผนทั้งหมด 6 วัน
+### Step 1: สร้าง LINE Official Account
 
-### Day 1: ตั้งค่า Backend และฐานข้อมูล
+- [ ] สร้าง LINE Official Account สำหรับระบบจองคิว
 
-ติดตั้งและตั้งค่าสำเร็จแล้ว:
+### Step 2: เปิดใช้งาน Messaging API
 
-- [X] ติดตั้ง Node.js
-- [X] สร้างโปรเจกต์ `line-api`
-- [X] สร้าง `package.json`
-- [X] ติดตั้ง Express
-- [X] ติดตั้ง TypeScript
-- [X] ติดตั้ง `tsx`
-- [X] ติดตั้ง Prisma
-- [X] ติดตั้ง Prisma Client
-- [X] ติดตั้ง SQLite Adapter (ตัวเชื่อม SQLite)
-- [X] สร้าง `prisma.config.ts`
-- [X] สร้าง `prisma/schema.prisma`
-- [X] ตรวจสอบ Prisma ด้วย `npx prisma -v`
-- [X] เพิ่ม `"type": "module"` ใน `package.json`
-- [X] เพิ่มคำสั่ง `"dev": "tsx watch src/index.ts"`
-- [X] สร้างไฟล์ `src/index.ts`
-- [X] เขียน Express Server ตัวแรก
-- [X] รันเซิร์ฟเวอร์ด้วย `npm run dev`
-- [X] ทดสอบ `http://localhost:3000`
+- [ ] เปิดใช้งาน Messaging API ให้กับ LINE Official Account
+- [ ] สร้าง Provider และ Messaging API Channel ใน LINE Developers
+- [ ] เก็บ Channel Secret และ Channel Access Token ไว้อย่างปลอดภัย
 
-ยังเหลือ:
+### Step 3: สร้าง Node.js + Express + TypeScript
 
-- [ ] สร้าง Task Model (โครงสร้างข้อมูลงาน) ใน Prisma
-- [ ] รัน Migration (สร้างตารางฐานข้อมูล)
+- [x] สร้างโปรเจกต์ Node.js
+- [x] ติดตั้ง Express
+- [x] ติดตั้ง TypeScript
+- [x] ติดตั้ง `tsx`
+- [x] สร้าง Express Server
+- [x] เปิดใช้ `express.json()`
+- [x] ทดสอบเซิร์ฟเวอร์ที่ `http://localhost:3000`
 
-  ```bash
-  npx prisma migrate dev --name init
-  ```
-- [ ] เปิดดูฐานข้อมูลด้วย Prisma Studio
+### Step 4: เชื่อม Webhook กับ LINE
 
-  ```bash
-  npx prisma studio
-  ```
+- [ ] สร้าง `POST /webhook`
+- [ ] เชื่อมต่อ Webhook URL กับ LINE Developers
+- [ ] ตรวจสอบ Webhook Signature
+- [ ] เปิดใช้งาน Webhook ใน LINE Developers
+- [ ] ใช้ Cloudflare Tunnel หรือบริการอื่นเพื่อเปิด HTTPS URL
 
-**เป้าหมาย Day 1:** เซิร์ฟเวอร์เปิดได้และเห็นตาราง SQLite
+### Step 5: ให้บอทตอบ "Hello" เมื่อได้รับข้อความ
 
-### Day 2: CRUD และ REST API
+- [ ] รับข้อความจากผู้ใช้ผ่าน Webhook
+- [ ] อ่านข้อความและ User ID
+- [ ] ตอบกลับข้อความ `Hello` ผ่าน Reply API
+- [ ] ทดสอบการส่งข้อความจริงผ่าน LINE
 
-- [ ] ทำความเข้าใจ Request และ Response (คำขอและคำตอบ)
-- [ ] ทำความเข้าใจ HTTP Methods (รูปแบบคำสั่ง HTTP)
-- [ ] สร้าง Prisma Client สำหรับเชื่อมฐานข้อมูล
-- [ ] เปิดใช้ `express.json()`
-- [ ] สร้าง API เพิ่มงาน — `POST /tasks`
-- [ ] สร้าง API ดูงานทั้งหมด — `GET /tasks`
-- [ ] สร้าง API ดูงานตามรหัส — `GET /tasks/:id`
-- [ ] สร้าง API แก้ไขงาน — `PUT /tasks/:id`
-- [ ] สร้าง API ลบงาน — `DELETE /tasks/:id`
-- [ ] จัดการกรณีไม่พบข้อมูลและข้อมูลผิดพลาด
-- [ ] ทดสอบ API ทั้งหมดผ่าน Postman
+### Step 6: สร้างฐานข้อมูล SQLite และ Prisma
 
-**เป้าหมาย Day 2:** เพิ่ม อ่าน แก้ไข และลบข้อมูลใน SQLite ผ่าน API ได้
+- [x] ติดตั้ง Prisma และ Prisma Client
+- [x] ติดตั้ง SQLite Adapter
+- [x] สร้าง `prisma.config.ts`
+- [x] สร้าง `prisma/schema.prisma`
+- [x] กำหนดค่า SQLite Database
+- [x] สร้าง Migration
+- [x] สร้างไฟล์ฐานข้อมูล SQLite
+- [ ] สร้างโมเดล `User`, `Slot` และ `Booking`
+- [ ] เชื่อม Prisma Client เข้ากับ Backend
 
-### Day 3: LINE OA และ Messaging API
+### Step 7: สร้าง REST API สำหรับจัดการคิว
 
-- [ ] สร้าง LINE Official Account หรือ LINE OA (บัญชีทางการ)
-- [ ] เข้า LINE Developers
-- [ ] สร้าง Provider (ผู้ให้บริการ)
-- [ ] สร้าง Messaging API Channel (ช่องทางเชื่อมต่อข้อความ)
-- [ ] เก็บ Channel Secret อย่างปลอดภัย
-- [ ] สร้าง Channel Access Token
-- [ ] เพิ่มค่าทั้งสองลงในไฟล์ `.env`
-- [ ] ติดตั้ง LINE Bot SDK (ชุดเครื่องมือพัฒนาบอต LINE)
-- [ ] เชื่อม LINE SDK กับ Express
-- [ ] ติดตั้ง Cloudflare Tunnel (ช่องทางเชื่อมเซิร์ฟเวอร์ในเครื่องสู่อินเทอร์เน็ต)
-- [ ] สร้าง HTTPS URL สำหรับเซิร์ฟเวอร์
-- [ ] ทดสอบว่า URL ภายนอกเข้าถึงเซิร์ฟเวอร์ได้
+- [ ] สร้าง API ดูช่วงเวลาที่ว่าง — `GET /slots`
+- [ ] สร้าง API จองคิว — `POST /bookings`
+- [ ] สร้าง API ดูรายละเอียดการจอง — `GET /bookings/:id`
+- [ ] สร้าง API ดูการจองของผู้ใช้ — `GET /users/:userId/bookings`
+- [ ] สร้าง API ยกเลิกการจอง — `DELETE /bookings/:id`
+- [ ] ป้องกันการจองช่วงเวลาเดียวกันซ้ำ
+- [ ] จัดการกรณีไม่พบข้อมูลและข้อมูลไม่ถูกต้อง
+- [ ] ทดสอบ REST API ด้วย Postman หรือเครื่องมืออื่น
 
-**เป้าหมาย Day 3:** LINE และอินเทอร์เน็ตเข้าถึงเซิร์ฟเวอร์ในเครื่องได้
+### Step 8: เชื่อม Webhook ให้เรียก REST API
 
-### Day 4: Webhook
+- [ ] เมื่อผู้ใช้ขอดูคิว ให้เรียก `GET /slots`
+- [ ] เมื่อผู้ใช้เลือกเวลา ให้เรียก `POST /bookings`
+- [ ] บันทึก LINE User ID กับข้อมูลการจอง
+- [ ] ส่งผลลัพธ์การจองกลับไปยังผู้ใช้ผ่าน LINE
 
-- [ ] สร้างเส้นทาง Webhook — `POST /webhook`
-- [ ] นำ URL ไปใส่ใน LINE Developers
-- [ ] กด Verify (ตรวจสอบการเชื่อมต่อ)
-- [ ] เปิดใช้งาน Webhook
-- [ ] รับ Event (เหตุการณ์) เมื่อผู้ใช้ส่งข้อความ
-- [ ] อ่านข้อความที่ผู้ใช้ส่งมา
-- [ ] อ่าน User ID (รหัสผู้ใช้)
-- [ ] ตรวจสอบ Signature (ลายเซ็นยืนยันว่าคำขอมาจาก LINE)
-- [ ] ให้บอตตอบข้อความกลับ
-- [ ] บันทึกข้อมูลผู้ใช้หรือข้อความลง SQLite
+### Step 9: เปลี่ยนข้อความธรรมดาเป็น Flex Message
 
-**เป้าหมาย Day 4:** ผู้ใช้ส่งข้อความแล้วเซิร์ฟเวอร์รับและตอบกลับได้
+- [ ] สร้าง Flex Message แสดงช่วงเวลาที่ว่าง
+- [ ] เพิ่มปุ่มเลือกและจองคิว
+- [ ] สร้าง Flex Message ยืนยันการจอง
+- [ ] สร้าง Flex Message แสดงรายละเอียดหรือสถานะการจอง
+- [ ] ทดสอบการแสดงผลบนโทรศัพท์
 
-### Day 5: Flex Message
+### Step 10: เพิ่มระบบแจ้งเตือน (Push API)
 
-- [ ] ทำความเข้าใจโครงสร้าง Flex Message (ข้อความรูปแบบการ์ด)
-- [ ] สร้าง Bubble (การ์ดหนึ่งใบ)
-- [ ] เพิ่มหัวข้อ รายละเอียด และปุ่ม
-- [ ] สร้างการ์ดแสดงรายการงาน
-- [ ] สร้างปุ่มเพิ่มงานหรือดูงาน
-- [ ] เชื่อมข้อมูลจาก SQLite เข้ากับการ์ด
-- [ ] ส่ง Flex Message ตอบกลับผู้ใช้
-- [ ] ทดสอบรูปแบบบนโทรศัพท์
-
-**เป้าหมาย Day 5:** บอตส่งการ์ดข้อมูลจากฐานข้อมูลให้ผู้ใช้ได้
-
-### Day 6: Push Notification
-
-- [ ] ทำความเข้าใจ Reply Message กับ Push Message
-- [ ] เก็บ LINE User ID ลงฐานข้อมูล
-- [ ] สร้าง API สำหรับส่ง Push Message (ข้อความที่เซิร์ฟเวอร์เริ่มส่งเอง)
-- [ ] เลือกผู้รับจากฐานข้อมูล
-- [ ] ส่งข้อความธรรมดา
-- [ ] ส่ง Flex Message
-- [ ] จัดการกรณี Token หรือ User ID ไม่ถูกต้อง
-- [ ] ทดสอบการแจ้งเตือนจริงใน LINE
+- [ ] สร้าง API สำหรับส่ง Push Message
+- [ ] ส่งข้อความแจ้งเตือนยืนยันการจอง
+- [ ] ส่งแจ้งเตือนก่อนถึงเวลานัดหมาย
+- [ ] ส่งแจ้งเตือนเมื่อมีการยกเลิกหรือเปลี่ยนแปลงคิว
+- [ ] จัดการกรณี User ID หรือ Token ไม่ถูกต้อง
 - [ ] เก็บ Secret และ Token ไว้ใน `.env`
 - [ ] ตรวจสอบว่า `.env` ไม่ถูกอัปโหลดขึ้น GitHub
 
-**เป้าหมาย Day 6:** เซิร์ฟเวอร์ส่งข้อความแจ้งเตือนไปยัง LINE ได้เอง
+### Step 11: ทดสอบระบบแบบครบ Flow
 
-## ผลลัพธ์สุดท้าย
+- [ ] ผู้ใช้เปิดแชตกับ LINE Official Account
+- [ ] บอทแสดงช่วงเวลาที่ว่าง
+- [ ] ผู้ใช้เลือกและจองคิว
+- [ ] ระบบบันทึกข้อมูลลง SQLite
+- [ ] บอทยืนยันการจองด้วย Flex Message
+- [ ] ระบบป้องกันการจองซ้ำ
+- [ ] ระบบส่ง Push Notification ได้
 
-เมื่อทำครบ ระบบจะทำงานตามลำดับนี้:
+## สถานะปัจจุบัน
+
+ทำแล้ว:
+
+- Node.js + Express + TypeScript
+- SQLite + Prisma เบื้องต้น
+- Express Server และ `express.json()`
+
+ยังไม่ได้ทำ:
+
+- LINE Official Account และ Messaging API
+- Webhook และ Reply API
+- โมเดล `User`, `Slot`, `Booking`
+- REST API สำหรับจัดการคิว
+- Flex Message
+- Push Notification
+
+## เป้าหมายสุดท้าย
 
 ```text
 ผู้ใช้ส่งข้อความใน LINE
-→ LINE ส่ง Webhook มาที่ Express
-→ Express อ่านหรือบันทึกข้อมูลผ่าน Prisma
-→ SQLite เก็บข้อมูล
-→ บอตตอบกลับด้วย Flex Message
-→ เซิร์ฟเวอร์ส่ง Push Notification ได้
+→ Webhook ส่งข้อมูลมาที่ Express
+→ Backend เรียก REST API สำหรับจัดการ Slot และ Booking
+→ Prisma บันทึกข้อมูลลง SQLite
+→ LINE Service ตอบกลับด้วย Flex Message
+→ ระบบส่ง Push Notification ตามเหตุการณ์
 ```

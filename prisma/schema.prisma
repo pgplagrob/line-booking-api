@@ -21,7 +21,7 @@ model User {
 
   bookings Booking[]
 }
-
+    
 model Slot {
   id        Int       @id @default(autoincrement())
   startAt   DateTime

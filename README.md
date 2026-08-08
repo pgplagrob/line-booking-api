@@ -65,7 +65,7 @@ Node.js + Express Backend
 - [X] สร้าง API ลบช่วงเวลาที่ยังไม่มีการจอง — `DELETE /slots/:id`
 - [X] สร้าง API จองคิว — `POST /bookings`
 - [X] สร้าง API ดูรายละเอียดการจอง — `GET /bookings/:id`
-- [ ] สร้าง API ดูการจองของผู้ใช้ — `GET /users/:userId/bookings`
+- [X] สร้าง API ดูการจองของผู้ใช้ — `GET /users/:userId/bookings`
 - [ ] สร้าง API ยกเลิกการจอง — `DELETE /bookings/:id`
 - [X] ป้องกันผู้ใช้จองช่วงเวลาเดิมซ้ำและป้องกันการจองเกิน `capacity`
 - [X] ตรวจสอบ input และจัดการกรณีไม่พบข้อมูลสำหรับ API ที่สร้างแล้ว

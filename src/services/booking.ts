@@ -128,3 +128,17 @@ export async function getBookingById(bookingId: number) {
     },
   });
 }
+
+export async function getBookingsByUserId(userId: number){
+  return prisma.booking.findMany({
+    where: {
+      userId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      slot: true,
+    },
+  });
+}

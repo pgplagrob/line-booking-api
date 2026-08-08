@@ -1,6 +1,7 @@
 import express from "express";
 import { prisma } from "./lib/prisma.js";
-import { BookingError, createBooking, getBookingById } from "./services/booking.js";
+import { BookingError, createBooking, getBookingById, getBookingsByUserId } from "./services/booking.js";
+
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -293,6 +294,51 @@ app.get("/bookings/:id", async (req, res) => {
     res.status(500).json({
       code: "INTERNAL_SERVER_ERROR",
       message: "Cannot get booking",
+    });
+  }
+});
+
+app.get("/users/:userId/bookings", async (req, res) => {
+  const userId = Number(req.params.userId);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    res.status(400).json({
+      code: "INVALID_USER_ID",
+      message: "User ID must be a positive integer",
+    });
+    return;
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        code: "USER_NOT_FOUND",
+        message: "User not found",
+      });
+      return;
+    }
+
+    const bookings = await getBookingsByUserId(userId);
+
+    res.status(200).json({
+      userId,
+      bookings,
+    });
+  } catch (error) {
+    console.error("Get user bookings failed:", error);
+
+    res.status(500).json({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Cannot get user bookings",
     });
   }
 });

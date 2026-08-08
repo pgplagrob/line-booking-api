@@ -1,6 +1,6 @@
 import express from "express";
 import { prisma } from "./lib/prisma.js";
-import { BookingError, createBooking } from "./services/booking.js";
+import { BookingError, createBooking, getBookingById } from "./services/booking.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -261,6 +261,42 @@ app.post("/bookings", async (req, res) => {
     });
   }
 });
+
+app.get("/bookings/:id", async (req, res) => {
+  const bookingId = Number(req.params.id);
+
+  if (!Number.isInteger(bookingId) || bookingId <= 0) {
+    res.status(400).json({
+      code: "INVALID_BOOKING_ID",
+      message: "Booking ID must be a positive integer",
+    });
+    return;
+  }
+
+  try {
+    const booking = await getBookingById(bookingId);
+
+    if (!booking) {
+      res.status(404).json({
+        code: "BOOKING_NOT_FOUND",
+        message: "Booking not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      booking,
+    });
+  } catch (error) {
+    console.error("Get booking failed:", error);
+
+    res.status(500).json({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Cannot get booking",
+    });
+  }
+});
+
 
 async function startServer() {
   await prisma.$connect();

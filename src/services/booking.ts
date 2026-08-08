@@ -116,3 +116,15 @@ export async function createBooking(input: CreateBookingInput) {
 
   throw new Error("Could not create booking after transaction retries");
 }
+
+export async function getBookingById(bookingId: number) {
+  return prisma.booking.findUnique({
+    where: {
+      id: bookingId,
+    },
+    include: {
+      user: true,
+      slot: true,
+    },
+  });
+}

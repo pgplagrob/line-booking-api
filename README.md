@@ -66,7 +66,7 @@ Node.js + Express Backend
 - [X] สร้าง API จองคิว — `POST /bookings`
 - [X] สร้าง API ดูรายละเอียดการจอง — `GET /bookings/:id`
 - [X] สร้าง API ดูการจองของผู้ใช้ — `GET /users/:userId/bookings`
-- [ ] สร้าง API ยกเลิกการจอง — `DELETE /bookings/:id`
+- [X] สร้าง API ยกเลิกการจอง — `DELETE /bookings/:id`
 - [X] ป้องกันผู้ใช้จองช่วงเวลาเดิมซ้ำและป้องกันการจองเกิน `capacity`
 - [X] ตรวจสอบ input และจัดการกรณีไม่พบข้อมูลสำหรับ API ที่สร้างแล้ว
 - [ ] ทดสอบ REST API ด้วย Postman หรือเครื่องมืออื่น

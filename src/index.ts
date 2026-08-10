@@ -1,6 +1,10 @@
 import express from "express";
 import { prisma } from "./lib/prisma.js";
-import { BookingError, createBooking, getBookingById, getBookingsByUserId } from "./services/booking.js";
+import { BookingError, 
+          createBooking, 
+          getBookingById, 
+          getBookingsByUserId, 
+} from "./services/booking.js";
 
 
 const app = express();
@@ -64,6 +68,7 @@ app.get("/slots", async (_req, res) => {
     });
   }
 });
+
 app.post("/slots", async (req, res) => {
   const body: unknown = req.body;
 
@@ -298,6 +303,44 @@ app.get("/bookings/:id", async (req, res) => {
   }
 });
 
+app.delete("/bookings/:id", async (req, res) => {
+  const bookingId = Number(req.params.id);
+
+  if (!Number.isInteger(bookingId) || bookingId <= 0) {
+    res.status(400).json({
+      code: "INVALID_BOOKING_ID",
+      message: "Booking ID must be a positive integer",
+    });
+    return;
+  }
+
+  try {
+    const booking = await cancelBooking(bookingId);
+
+    res.status(200).json({
+      message: "Booking cancelled successfully",
+      booking,
+    });
+  } catch (error) {
+    if (error instanceof BookingError) {
+      res.status(
+        error.code === "BOOKING_NOT_FOUND" ? 404 : 409,
+      ).json({
+        code: error.code,
+        message: error.message,
+      });
+      return;
+    }
+
+    console.error("Cancel booking failed:", error);
+
+    res.status(500).json({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Cannot cancel booking",
+    });
+  }
+});
+
 app.get("/users/:userId/bookings", async (req, res) => {
   const userId = Number(req.params.userId);
 
@@ -367,3 +410,33 @@ startServer().catch(async (error) => {
   await prisma.$disconnect();
   process.exit(1);
 });
+
+export async function cancelBooking(bookingId: number) {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    select: { id: true, status: true },
+  });
+
+  if (!booking) {
+    throw new BookingError("BOOKING_NOT_FOUND", "Booking not found");
+  }
+
+  if (booking.status !== "CONFIRMED") { 
+    throw new BookingError(
+      "BOOKING_ALREADY_CANCELLED",
+      "Booking has already been cancelled",
+    );
+  }
+
+  return prisma.booking.update({
+    where: { id: bookingId },
+    data: {
+      status: "CANCELLED",
+      cancelledAt: new Date(),
+    },
+    include: {
+      user: true,
+      slot: true,
+    },
+  });
+}

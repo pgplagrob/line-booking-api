@@ -9,7 +9,9 @@ export type BookingErrorCode =
   | "SLOT_NOT_FOUND"
   | "USER_NOT_FOUND"
   | "SLOT_FULL"
-  | "DUPLICATE_BOOKING";
+  | "DUPLICATE_BOOKING"
+  | "BOOKING_NOT_FOUND"
+  | "BOOKING_ALREADY_CANCELLED";
 
 export class BookingError extends Error {
   constructor(

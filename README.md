@@ -38,50 +38,50 @@ Node.js + Express Backend
 
 ## Step B1: สร้าง Node.js + Express + TypeScript
 
-- [x] สร้างโปรเจกต์ Node.js
-- [x] ติดตั้ง Express
-- [x] ติดตั้ง TypeScript
-- [x] ติดตั้ง `tsx`
-- [x] สร้าง Express Server
-- [x] เปิดใช้ `express.json()`
-- [x] ทดสอบเซิร์ฟเวอร์ที่ `http://localhost:3000`
+- [X] สร้างโปรเจกต์ Node.js
+- [X] ติดตั้ง Express
+- [X] ติดตั้ง TypeScript
+- [X] ติดตั้ง `tsx`
+- [X] สร้าง Express Server
+- [X] เปิดใช้ `express.json()`
+- [X] ทดสอบเซิร์ฟเวอร์ที่ `http://localhost:3000`
 
 ## Step B2: สร้างฐานข้อมูล SQLite และ Prisma
 
-- [x] ติดตั้ง Prisma และ Prisma Client
-- [x] ติดตั้ง SQLite Adapter
-- [x] สร้าง `prisma.config.ts`
-- [x] สร้าง `prisma/schema.prisma`
-- [x] กำหนดค่า SQLite Database
-- [x] สร้าง Migration
-- [x] สร้างไฟล์ฐานข้อมูล SQLite
-- [x] สร้างโมเดล `User`, `Slot` และ `Booking`
-- [x] เชื่อม Prisma Client เข้ากับ Backend
+- [X] ติดตั้ง Prisma และ Prisma Client
+- [X] ติดตั้ง SQLite Adapter
+- [X] สร้าง `prisma.config.ts`
+- [X] สร้าง `prisma/schema.prisma`
+- [X] กำหนดค่า SQLite Database
+- [X] สร้าง Migration
+- [X] สร้างไฟล์ฐานข้อมูล SQLite
+- [X] สร้างโมเดล `User`, `Slot` และ `Booking`
+- [X] เชื่อม Prisma Client เข้ากับ Backend
 
 ## Step B3: สร้าง REST API สำหรับจัดการคิว
 
-- [x] สร้าง API ดูช่วงเวลาที่ว่าง — `GET /slots`
-- [x] สร้าง API เพิ่มช่วงเวลา — `POST /slots`
-- [x] สร้าง API ลบช่วงเวลาที่ยังไม่มีการจอง — `DELETE /slots/:id`
-- [x] สร้าง API จองคิว — `POST /bookings`
-- [ ] สร้าง API ดูรายละเอียดการจอง — `GET /bookings/:id`
-- [ ] สร้าง API ดูการจองของผู้ใช้ — `GET /users/:userId/bookings`
-- [ ] สร้าง API ยกเลิกการจอง — `DELETE /bookings/:id`
-- [x] ป้องกันผู้ใช้จองช่วงเวลาเดิมซ้ำและป้องกันการจองเกิน `capacity`
-- [x] ตรวจสอบ input และจัดการกรณีไม่พบข้อมูลสำหรับ API ที่สร้างแล้ว
-- [ ] ทดสอบ REST API ด้วย Postman หรือเครื่องมืออื่น
+- [X] สร้าง API ดูช่วงเวลาที่ว่าง — `GET /slots`
+- [X] สร้าง API เพิ่มช่วงเวลา — `POST /slots`
+- [X] สร้าง API ลบช่วงเวลาที่ยังไม่มีการจอง — `DELETE /slots/:id`
+- [X] สร้าง API จองคิว — `POST /bookings`
+- [X] สร้าง API ดูรายละเอียดการจอง — `GET /bookings/:id`
+- [X] สร้าง API ดูการจองของผู้ใช้ — `GET /users/:userId/bookings`
+- [X] สร้าง API ยกเลิกการจอง — `DELETE /bookings/:id`
+- [X] ป้องกันผู้ใช้จองช่วงเวลาเดิมซ้ำและป้องกันการจองเกิน `capacity`
+- [X] ตรวจสอบ input และจัดการกรณีไม่พบข้อมูลสำหรับ API ที่สร้างแล้ว
+- [X] ทดสอบ REST API ด้วย Postman หรือเครื่องมืออื่น
 
 ## Step B4: ตั้งค่า LINE Official Account และ Messaging API
 
-- [ ] สร้าง LINE Official Account สำหรับระบบจองคิว
-- [ ] เปิดใช้งาน Messaging API ให้กับ LINE Official Account
-- [ ] สร้าง Provider และ Messaging API Channel ใน LINE Developers
-- [ ] เก็บ Channel Secret และ Channel Access Token ไว้ใน `.env`
-- [ ] ตรวจสอบว่า `.env` ไม่ถูกอัปโหลดขึ้น GitHub
+- [X] สร้าง LINE Official Account สำหรับระบบจองคิว
+- [X] เปิดใช้งาน Messaging API ให้กับ LINE Official Account
+- [X] สร้าง Provider และ Messaging API Channel ใน LINE Developers
+- [X] เก็บ Channel Secret และ Channel Access Token ไว้ใน `.env`
+- [X] ตรวจสอบว่า `.env` ไม่ถูกอัปโหลดขึ้น GitHub
 
 ## Step B5: เชื่อม Webhook กับ LINE
 
-- [ ] สร้าง `POST /webhook`
+- [X] สร้าง `POST /webhook`
 - [ ] ตรวจสอบ Webhook Signature
 - [ ] ใช้ Cloudflare Tunnel หรือบริการอื่นเพื่อเปิด HTTPS URL
 - [ ] เชื่อมต่อ Webhook URL กับ LINE Developers
@@ -139,14 +139,14 @@ Node.js + Express Backend
 
 ### API ที่ใช้งานได้แล้ว
 
-| Method | Endpoint | สถานะ/หน้าที่ |
-| --- | --- | --- |
-| `GET` | `/` | ตรวจสอบว่า server ทำงาน |
-| `GET` | `/health/db` | ตรวจสอบการเชื่อมต่อฐานข้อมูล |
-| `GET` | `/slots` | ดู slot พร้อม `bookedCount` และ `remaining` |
-| `POST` | `/slots` | เพิ่ม slot โดยรับ `date`, `startTime`, `endTime`, `capacity` |
-| `DELETE` | `/slots/:id` | ลบ slot ที่ยังไม่มี booking |
-| `POST` | `/bookings` | จอง slot โดยรับ `userId`, `slotId` และ `note` (ถ้ามี) |
+| Method     | Endpoint       | สถานะ/หน้าที่                                                      |
+| ---------- | -------------- | ------------------------------------------------------------------------------ |
+| `GET`    | `/`          | ตรวจสอบว่า server ทำงาน                                         |
+| `GET`    | `/health/db` | ตรวจสอบการเชื่อมต่อฐานข้อมูล                       |
+| `GET`    | `/slots`     | ดู slot พร้อม`bookedCount` และ `remaining`                       |
+| `POST`   | `/slots`     | เพิ่ม slot โดยรับ`date`, `startTime`, `endTime`, `capacity` |
+| `DELETE` | `/slots/:id` | ลบ slot ที่ยังไม่มี booking                                       |
+| `POST`   | `/bookings`  | จอง slot โดยรับ`userId`, `slotId` และ `note` (ถ้ามี)    |
 
 ### งานถัดไป
 
@@ -163,26 +163,22 @@ Node.js + Express Backend
    ```bash
    npm install
    ```
-
 2. สร้างไฟล์ `.env` และกำหนด URL ของ SQLite
 
    ```env
    DATABASE_URL="file:./dev.db"
    ```
-
 3. Generate Prisma Client และรัน Migration
 
    ```bash
    npx prisma generate
    npx prisma migrate dev
    ```
-
 4. เริ่ม Development Server
 
    ```bash
    npm run dev
    ```
-
 5. ตรวจสอบ Server และ Database
 
    ```text

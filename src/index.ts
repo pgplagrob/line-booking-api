@@ -13,6 +13,68 @@ app.get("/", (_req, res) => {
   });
 });
 
+app.post("/webhook", (req, res) => {
+  const body: unknown = req.body;
+
+  if (body === null || typeof body !== "object" || Array.isArray(body)) {
+    res.status(400).json({
+      message: "Webhook body must be a JSON object",
+    });
+    return;
+  }
+
+  const { events } = body as { events?: unknown };
+
+  if (!Array.isArray(events)) {
+    res.status(400).json({
+      message: "Webhook events must be an array",
+    });
+    return;
+  }
+
+  for (const event of events) {
+    if (event === null || typeof event !== "object" || Array.isArray(event)) {
+      continue;
+    }
+
+    const { type, source, message } = event as {
+      type?: unknown;
+      source?: unknown;
+      message?: unknown;
+    };
+
+    const userId =
+      source !== null &&
+      typeof source === "object" &&
+      !Array.isArray(source) &&
+      typeof (source as { userId?: unknown }).userId === "string"
+        ? (source as { userId: string }).userId
+        : undefined;
+
+    const text =
+      type === "message" &&
+      message !== null &&
+      typeof message === "object" &&
+      !Array.isArray(message) &&
+      (message as { type?: unknown }).type === "text" &&
+      typeof (message as { text?: unknown }).text === "string"
+        ? (message as { text: string }).text
+        : undefined;
+
+    console.log("LINE webhook event:", {
+      type,
+      userId,
+      text,
+    });
+  }
+
+  // LINE expects a successful response after the webhook is received.
+  res.status(200).json({
+    message: "OK",
+    eventCount: events.length,
+  });
+});
+
 app.get("/health/db", async (_req, res) => {
   try {
     const userCount = await prisma.user.count();

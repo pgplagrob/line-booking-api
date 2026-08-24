@@ -1,6 +1,12 @@
 import express from "express";
 import { prisma } from "./lib/prisma.js";
-import { BookingError, createBooking } from "./services/booking.js";
+import {
+  BookingError,
+  cancelBooking,
+  createBooking,
+  getBookingById,
+  getBookingsByUserId,
+} from "./services/booking.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -320,6 +326,122 @@ app.post("/bookings", async (req, res) => {
     res.status(500).json({
       code: "INTERNAL_SERVER_ERROR",
       message: "Cannot create booking",
+    });
+  }
+});
+
+app.get("/bookings/:id", async (req, res) => {
+  const bookingId = Number(req.params.id);
+
+  if (!Number.isInteger(bookingId) || bookingId <= 0) {
+    res.status(400).json({
+      code: "INVALID_BOOKING_ID",
+      message: "Booking ID must be a positive integer",
+    });
+    return;
+  }
+
+  try {
+    const booking = await getBookingById(bookingId);
+
+    if (!booking) {
+      res.status(404).json({
+        code: "BOOKING_NOT_FOUND",
+        message: "Booking not found",
+      });
+      return;
+    }
+
+    res.status(200).json({ booking });
+  } catch (error) {
+    console.error("Get booking failed:", error);
+
+    res.status(500).json({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Cannot get booking",
+    });
+  }
+});
+
+app.get("/users/:userId/bookings", async (req, res) => {
+  const userId = Number(req.params.userId);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    res.status(400).json({
+      code: "INVALID_USER_ID",
+      message: "User ID must be a positive integer",
+    });
+    return;
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({
+        code: "USER_NOT_FOUND",
+        message: "User not found",
+      });
+      return;
+    }
+
+    const bookings = await getBookingsByUserId(userId);
+
+    res.status(200).json({
+      userId,
+      bookings,
+    });
+  } catch (error) {
+    console.error("Get user bookings failed:", error);
+
+    res.status(500).json({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Cannot get user bookings",
+    });
+  }
+});
+
+app.delete("/bookings/:id", async (req, res) => {
+  const bookingId = Number(req.params.id);
+
+  if (!Number.isInteger(bookingId) || bookingId <= 0) {
+    res.status(400).json({
+      code: "INVALID_BOOKING_ID",
+      message: "Booking ID must be a positive integer",
+    });
+    return;
+  }
+
+  try {
+    const booking = await cancelBooking(bookingId);
+
+    res.status(200).json({
+      message: "Booking cancelled successfully",
+      booking,
+    });
+  } catch (error) {
+    if (error instanceof BookingError) {
+      const status = error.code === "BOOKING_NOT_FOUND" ? 404 : 409;
+
+      res.status(status).json({
+        code: error.code,
+        message: error.message,
+      });
+      return;
+    }
+
+    console.error("Cancel booking failed:", error);
+
+    res.status(500).json({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Cannot cancel booking",
     });
   }
 });

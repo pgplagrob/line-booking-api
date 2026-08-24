@@ -30,6 +30,21 @@ Node.js + Express Backend
 1. **Backend** — ฐานข้อมูล, REST API, LINE Webhook และระบบแจ้งเตือน
 2. **Frontend** — หน้าจอผู้ใช้และการเชื่อมต่อ REST API
 
+## โครงสร้างโปรเจกต์
+
+```text
+line-api/
+├── backend/           # Express API, Prisma และ SQLite
+│   ├── prisma/
+│   ├── src/
+│   ├── .env.example
+│   ├── .env
+│   └── package.json
+├── frontend/          # พื้นที่สำหรับพัฒนาเว็บใน Phase 2
+├── .gitignore
+└── README.md
+```
+
 ---
 
 # Phase 1: Backend
@@ -86,7 +101,7 @@ Node.js + Express Backend
 - [ ] ใช้ Cloudflare Tunnel หรือบริการอื่นเพื่อเปิด HTTPS URL
 - [ ] เชื่อมต่อ Webhook URL กับ LINE Developers
 - [ ] เปิดใช้งาน Webhook ใน LINE Developers
-- [ ] อ่านข้อความและ LINE User ID จาก Webhook
+- [X] อ่านข้อความและ LINE User ID จาก Webhook
 - [ ] ตอบกลับข้อความ `Hello` ผ่าน Reply API
 - [ ] ทดสอบการส่งข้อความจริงผ่าน LINE
 
@@ -125,9 +140,9 @@ Node.js + Express Backend
 - [ ] ระบบส่ง Push Notification ได้
 - [ ] REST API มีรูปแบบ Response และ Error ที่พร้อมให้ Frontend ใช้งาน
 
-## สถานะปัจจุบัน (Checkpoint: 7 สิงหาคม 2026)
+## สถานะปัจจุบัน (Checkpoint: 25 สิงหาคม 2026)
 
-ขณะนี้อยู่ระหว่าง **Step B3: REST API** โดยส่วนที่ทำเสร็จและตรวจสอบ TypeScript แล้วมีดังนี้:
+ขณะนี้อยู่ระหว่าง **Step B3: REST API** และเริ่ม **Step B5: LINE Webhook** แล้ว โดยส่วนที่ทำเสร็จและตรวจสอบ TypeScript แล้วมีดังนี้:
 
 - Prisma models: `User`, `Slot` และ `Booking`
 - Prisma Client สำหรับ SQLite ผ่าน `@prisma/adapter-better-sqlite3`
@@ -139,47 +154,53 @@ Node.js + Express Backend
 
 ### API ที่ใช้งานได้แล้ว
 
-| Method     | Endpoint       | สถานะ/หน้าที่                                                      |
-| ---------- | -------------- | ------------------------------------------------------------------------------ |
-| `GET`    | `/`          | ตรวจสอบว่า server ทำงาน                                         |
-| `GET`    | `/health/db` | ตรวจสอบการเชื่อมต่อฐานข้อมูล                       |
-| `GET`    | `/slots`     | ดู slot พร้อม`bookedCount` และ `remaining`                       |
-| `POST`   | `/slots`     | เพิ่ม slot โดยรับ`date`, `startTime`, `endTime`, `capacity` |
-| `DELETE` | `/slots/:id` | ลบ slot ที่ยังไม่มี booking                                       |
-| `POST`   | `/bookings`  | จอง slot โดยรับ`userId`, `slotId` และ `note` (ถ้ามี)    |
+| Method     | Endpoint       | สถานะ/หน้าที่                                                           |
+| ---------- | -------------- | ----------------------------------------------------------------------------------- |
+| `GET`    | `/`          | ตรวจสอบว่า server ทำงาน                                              |
+| `GET`    | `/health/db` | ตรวจสอบการเชื่อมต่อฐานข้อมูล                            |
+| `GET`    | `/slots`     | ดู slot พร้อม`bookedCount` และ `remaining`                            |
+| `POST`   | `/slots`     | เพิ่ม slot โดยรับ`date`, `startTime`, `endTime`, `capacity`      |
+| `DELETE` | `/slots/:id` | ลบ slot ที่ยังไม่มี booking                                            |
+| `POST`   | `/bookings`  | จอง slot โดยรับ`userId`, `slotId` และ `note` (ถ้ามี)         |
+| `GET`    | `/bookings/:id` | ดูรายละเอียดการจองพร้อมข้อมูลผู้ใช้และช่วงเวลา |
+| `GET`    | `/users/:userId/bookings` | ดูรายการจองทั้งหมดของผู้ใช้ |
+| `DELETE` | `/bookings/:id` | ยกเลิกการจองที่มีสถานะ `CONFIRMED` |
+| `POST`   | `/webhook`   | รับ event จาก LINE และอ่านชนิด event, User ID และข้อความ |
 
 ### งานถัดไป
 
-1. สร้าง `GET /bookings/:id`
-2. สร้าง `GET /users/:userId/bookings`
-3. สร้าง `DELETE /bookings/:id` สำหรับยกเลิกการจอง
-4. ทดสอบ REST API และปรับรูปแบบ response/error ให้สม่ำเสมอ
-5. เมื่อ Step B3 เสร็จ จึงเริ่มตั้งค่า LINE Official Account และ Webhook ใน Step B4-B5
+1. ทดสอบ REST API และปรับรูปแบบ response/error ให้สม่ำเสมอ
+2. ตรวจสอบ Webhook Signature และเชื่อม Webhook URL กับ LINE Developers
 
 ## วิธีรัน Backend
 
-1. ติดตั้ง dependencies
+1. เข้าโฟลเดอร์ Backend
+
+   ```bash
+   cd backend
+   ```
+2. ติดตั้ง dependencies
 
    ```bash
    npm install
    ```
-2. สร้างไฟล์ `.env` และกำหนด URL ของ SQLite
+3. คัดลอก `.env.example` เป็น `.env` ภายใน `backend/`
 
-   ```env
-   DATABASE_URL="file:./dev.db"
+   ```powershell
+   Copy-Item .env.example .env
    ```
-3. Generate Prisma Client และรัน Migration
+4. รัน Migration และ Generate Prisma Client
 
    ```bash
-   npx prisma generate
    npx prisma migrate dev
+   npx prisma generate
    ```
-4. เริ่ม Development Server
+5. เริ่ม Development Server
 
    ```bash
    npm run dev
    ```
-5. ตรวจสอบ Server และ Database
+6. ตรวจสอบ Server และ Database
 
    ```text
    GET http://localhost:3000/

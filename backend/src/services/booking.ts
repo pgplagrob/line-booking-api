@@ -9,7 +9,9 @@ export type BookingErrorCode =
   | "SLOT_NOT_FOUND"
   | "USER_NOT_FOUND"
   | "SLOT_FULL"
-  | "DUPLICATE_BOOKING";
+  | "DUPLICATE_BOOKING"
+  | "BOOKING_NOT_FOUND"
+  | "BOOKING_ALREADY_CANCELLED";
 
 export class BookingError extends Error {
   constructor(
@@ -115,4 +117,67 @@ export async function createBooking(input: CreateBookingInput) {
   }
 
   throw new Error("Could not create booking after transaction retries");
+}
+
+export async function getBookingById(bookingId: number) {
+  return prisma.booking.findUnique({
+    where: {
+      id: bookingId,
+    },
+    include: {
+      user: true,
+      slot: true,
+    },
+  });
+}
+
+export async function getBookingsByUserId(userId: number) {
+  return prisma.booking.findMany({
+    where: {
+      userId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      slot: true,
+    },
+  });
+}
+
+export async function cancelBooking(bookingId: number) {
+  const booking = await prisma.booking.findUnique({
+    where: {
+      id: bookingId,
+    },
+    select: {
+      id: true,
+      status: true,
+    },
+  });
+
+  if (!booking) {
+    throw new BookingError("BOOKING_NOT_FOUND", "Booking not found");
+  }
+
+  if (booking.status !== CONFIRMED_STATUS) {
+    throw new BookingError(
+      "BOOKING_ALREADY_CANCELLED",
+      "Booking has already been cancelled",
+    );
+  }
+
+  return prisma.booking.update({
+    where: {
+      id: bookingId,
+    },
+    data: {
+      status: "CANCELLED",
+      cancelledAt: new Date(),
+    },
+    include: {
+      user: true,
+      slot: true,
+    },
+  });
 }

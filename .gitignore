@@ -10,4 +10,11 @@ node_modules
 # Nested clone of the remote repository
 line-booking-api/
 
-/src/generated/prisma
+/backend/src/generated/prisma
+/backend/dist/
+
+# Local SQLite database files
+/backend/dev.db
+/backend/*.db-journal
+/backend/*.db-wal
+/backend/*.db-shm

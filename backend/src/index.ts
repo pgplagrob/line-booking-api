@@ -1,4 +1,6 @@
 import express from "express";
+import "dotenv/config";
+import crypto from "node:crypto";
 import { prisma } from "./lib/prisma.js";
 import {
   BookingError,
@@ -11,73 +13,123 @@ import {
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+const lineChannelSecret = process.env.LINE_CHANNEL_SECRET;
+
+if (!lineChannelSecret) {
+  throw new Error("LINE_CHANNEL_SECRET is not defined");
+}
+
+const verifiedLineChannelSecret = lineChannelSecret;
+
+function verifyLineSignature(
+  rawBody: Buffer,
+  signature: string,
+): boolean {
+  const expectedSignature = crypto
+    .createHmac("sha256", verifiedLineChannelSecret)
+    .update(rawBody)
+    .digest();
+
+  const receivedSignature = Buffer.from(signature, "base64");
+
+  return (
+    receivedSignature.length === expectedSignature.length &&
+    crypto.timingSafeEqual(receivedSignature, expectedSignature)
+  );
+}
+
+app.post(
+  "/webhook",
+  express.raw({ type: "application/json" }),
+  (req, res) => {
+    const signature = req.get("x-line-signature");
+
+    if (
+      !signature ||
+      !Buffer.isBuffer(req.body) ||
+      !verifyLineSignature(req.body, signature)
+    ) {
+      res.status(401).json({
+        message: "Invalid LINE webhook signature",
+      });
+      return;
+    }
+
+    let body: unknown;
+
+    try {
+      body = JSON.parse(req.body.toString("utf8"));
+    } catch {
+      res.status(400).json({
+        message: "Invalid JSON body",
+      });
+      return;
+    }
+
+    if (body === null || typeof body !== "object" || Array.isArray(body)) {
+      res.status(400).json({
+        message: "Webhook body must be a JSON object",
+      });
+      return;
+    }
+
+    const { events } = body as { events?: unknown };
+
+    if (!Array.isArray(events)) {
+      res.status(400).json({
+        message: "Webhook events must be an array",
+      });
+      return;
+    }
+
+    for (const event of events) {
+      if (event === null || typeof event !== "object" || Array.isArray(event)) {
+        continue;
+      }
+
+      const { type, source, message } = event as {
+        type?: unknown;
+        source?: unknown;
+        message?: unknown;
+      };
+
+      const userId =
+        source !== null &&
+        typeof source === "object" &&
+        !Array.isArray(source) &&
+        typeof (source as { userId?: unknown }).userId === "string"
+          ? (source as { userId: string }).userId
+          : undefined;
+
+      const text =
+        type === "message" &&
+        message !== null &&
+        typeof message === "object" &&
+        !Array.isArray(message) &&
+        (message as { type?: unknown }).type === "text" &&
+        typeof (message as { text?: unknown }).text === "string"
+          ? (message as { text: string }).text
+          : undefined;
+
+      console.log("LINE webhook event:", {
+        type,
+        userId,
+        text,
+      });
+    }
+
+    res.status(200).json({
+      message: "OK",
+      eventCount: events.length,
+    });
+  },
+);
+
 app.use(express.json());
 
 app.get("/", (_req, res) => {
   res.status(200).json({
     message: "LINE API server is running!",
-  });
-});
-
-app.post("/webhook", (req, res) => {
-  const body: unknown = req.body;
-
-  if (body === null || typeof body !== "object" || Array.isArray(body)) {
-    res.status(400).json({
-      message: "Webhook body must be a JSON object",
-    });
-    return;
-  }
-
-  const { events } = body as { events?: unknown };
-
-  if (!Array.isArray(events)) {
-    res.status(400).json({
-      message: "Webhook events must be an array",
-    });
-    return;
-  }
-
-  for (const event of events) {
-    if (event === null || typeof event !== "object" || Array.isArray(event)) {
-      continue;
-    }
-
-    const { type, source, message } = event as {
-      type?: unknown;
-      source?: unknown;
-      message?: unknown;
-    };
-
-    const userId =
-      source !== null &&
-      typeof source === "object" &&
-      !Array.isArray(source) &&
-      typeof (source as { userId?: unknown }).userId === "string"
-        ? (source as { userId: string }).userId
-        : undefined;
-
-    const text =
-      type === "message" &&
-      message !== null &&
-      typeof message === "object" &&
-      !Array.isArray(message) &&
-      (message as { type?: unknown }).type === "text" &&
-      typeof (message as { text?: unknown }).text === "string"
-        ? (message as { text: string }).text
-        : undefined;
-
-    console.log("LINE webhook event:", {
-      type,
-      userId,
-      text,
-    });
-  }
-
-  // LINE expects a successful response after the webhook is received.
-  res.status(200).json({
-    message: "OK",
-    eventCount: events.length,
   });
 });
 

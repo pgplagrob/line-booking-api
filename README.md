@@ -97,7 +97,7 @@ line-api/
 ## Step B5: เชื่อม Webhook กับ LINE
 
 - [X] สร้าง `POST /webhook`
-- [ ] ตรวจสอบ Webhook Signature
+- [X] ตรวจสอบ Webhook Signature
 - [ ] ใช้ Cloudflare Tunnel หรือบริการอื่นเพื่อเปิด HTTPS URL
 - [ ] เชื่อมต่อ Webhook URL กับ LINE Developers
 - [ ] เปิดใช้งาน Webhook ใน LINE Developers

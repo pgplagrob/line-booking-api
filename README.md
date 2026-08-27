@@ -98,7 +98,7 @@ line-api/
 
 - [X] สร้าง `POST /webhook`
 - [X] ตรวจสอบ Webhook Signature
-- [ ] ใช้ Cloudflare Tunnel หรือบริการอื่นเพื่อเปิด HTTPS URL
+- [X] ใช้ Cloudflare Tunnel หรือบริการอื่นเพื่อเปิด HTTPS URL
 - [ ] เชื่อมต่อ Webhook URL กับ LINE Developers
 - [ ] เปิดใช้งาน Webhook ใน LINE Developers
 - [X] อ่านข้อความและ LINE User ID จาก Webhook
@@ -154,18 +154,18 @@ line-api/
 
 ### API ที่ใช้งานได้แล้ว
 
-| Method     | Endpoint       | สถานะ/หน้าที่                                                           |
-| ---------- | -------------- | ----------------------------------------------------------------------------------- |
-| `GET`    | `/`          | ตรวจสอบว่า server ทำงาน                                              |
-| `GET`    | `/health/db` | ตรวจสอบการเชื่อมต่อฐานข้อมูล                            |
-| `GET`    | `/slots`     | ดู slot พร้อม`bookedCount` และ `remaining`                            |
-| `POST`   | `/slots`     | เพิ่ม slot โดยรับ`date`, `startTime`, `endTime`, `capacity`      |
-| `DELETE` | `/slots/:id` | ลบ slot ที่ยังไม่มี booking                                            |
-| `POST`   | `/bookings`  | จอง slot โดยรับ`userId`, `slotId` และ `note` (ถ้ามี)         |
-| `GET`    | `/bookings/:id` | ดูรายละเอียดการจองพร้อมข้อมูลผู้ใช้และช่วงเวลา |
-| `GET`    | `/users/:userId/bookings` | ดูรายการจองทั้งหมดของผู้ใช้ |
-| `DELETE` | `/bookings/:id` | ยกเลิกการจองที่มีสถานะ `CONFIRMED` |
-| `POST`   | `/webhook`   | รับ event จาก LINE และอ่านชนิด event, User ID และข้อความ |
+| Method     | Endpoint                    | สถานะ/หน้าที่                                                                    |
+| ---------- | --------------------------- | -------------------------------------------------------------------------------------------- |
+| `GET`    | `/`                       | ตรวจสอบว่า server ทำงาน                                                       |
+| `GET`    | `/health/db`              | ตรวจสอบการเชื่อมต่อฐานข้อมูล                                     |
+| `GET`    | `/slots`                  | ดู slot พร้อม`bookedCount` และ `remaining`                                     |
+| `POST`   | `/slots`                  | เพิ่ม slot โดยรับ`date`, `startTime`, `endTime`, `capacity`               |
+| `DELETE` | `/slots/:id`              | ลบ slot ที่ยังไม่มี booking                                                     |
+| `POST`   | `/bookings`               | จอง slot โดยรับ`userId`, `slotId` และ `note` (ถ้ามี)                  |
+| `GET`    | `/bookings/:id`           | ดูรายละเอียดการจองพร้อมข้อมูลผู้ใช้และช่วงเวลา |
+| `GET`    | `/users/:userId/bookings` | ดูรายการจองทั้งหมดของผู้ใช้                                       |
+| `DELETE` | `/bookings/:id`           | ยกเลิกการจองที่มีสถานะ`CONFIRMED`                                    |
+| `POST`   | `/webhook`                | รับ event จาก LINE และอ่านชนิด event, User ID และข้อความ          |
 
 ### งานถัดไป
 

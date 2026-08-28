@@ -99,7 +99,7 @@ line-api/
 - [X] สร้าง `POST /webhook`
 - [X] ตรวจสอบ Webhook Signature
 - [X] ใช้ Cloudflare Tunnel หรือบริการอื่นเพื่อเปิด HTTPS URL
-- [ ] เชื่อมต่อ Webhook URL กับ LINE Developers
+- [X] เชื่อมต่อ Webhook URL กับ LINE Developers
 - [ ] เปิดใช้งาน Webhook ใน LINE Developers
 - [X] อ่านข้อความและ LINE User ID จาก Webhook
 - [ ] ตอบกลับข้อความ `Hello` ผ่าน Reply API

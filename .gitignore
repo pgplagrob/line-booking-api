@@ -18,3 +18,5 @@ line-booking-api/
 /backend/*.db-journal
 /backend/*.db-wal
 /backend/*.db-shm
+
+/backend/cloudflared.exe

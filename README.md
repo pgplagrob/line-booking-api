@@ -102,8 +102,8 @@ line-api/
 - [X] เชื่อมต่อ Webhook URL กับ LINE Developers
 - [X] เปิดใช้งาน Webhook ใน LINE Developers
 - [X] อ่านข้อความและ LINE User ID จาก Webhook
-- [ ] ตอบกลับข้อความ `Hello` ผ่าน Reply API
-- [ ] ทดสอบการส่งข้อความจริงผ่าน LINE
+- [X] ตอบกลับข้อความ `Hello` ผ่าน Reply API
+- [X] ทดสอบการส่งข้อความจริงผ่าน LINE
 
 ## Step B6: เชื่อม LINE เข้ากับระบบจองคิว
 

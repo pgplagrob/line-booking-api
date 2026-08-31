@@ -14,12 +14,18 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
 const lineChannelSecret = process.env.LINE_CHANNEL_SECRET;
+const lineChannelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN;
 
 if (!lineChannelSecret) {
   throw new Error("LINE_CHANNEL_SECRET is not defined");
 }
 
+if (!lineChannelAccessToken) {
+  throw new Error("LINE_CHANNEL_ACCESS_TOKEN is not defined");
+}
+
 const verifiedLineChannelSecret = lineChannelSecret;
+const verifiedLineChannelAccessToken = lineChannelAccessToken;
 
 function verifyLineSignature(
   rawBody: Buffer,
@@ -38,10 +44,43 @@ function verifyLineSignature(
   );
 }
 
+async function replyLineMessage(
+  replyToken: string,
+  text: string,
+): Promise<void> {
+  const response = await fetch(
+    "https://api.line.me/v2/bot/message/reply",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${verifiedLineChannelAccessToken}`,
+      },
+      body: JSON.stringify({
+        replyToken,
+        messages: [
+          {
+            type: "text",
+            text,
+          },
+        ],
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+
+    throw new Error(
+      `LINE Reply API failed: ${response.status} ${errorBody}`,
+    );
+  }
+}
+
 app.post(
   "/webhook",
   express.raw({ type: "application/json" }),
-  (req, res) => {
+ async (req, res) => {
     const signature = req.get("x-line-signature");
 
     if (
@@ -87,11 +126,15 @@ app.post(
         continue;
       }
 
-      const { type, source, message } = event as {
+      const { type, source, message, replyToken } = event as {
         type?: unknown;
         source?: unknown;
         message?: unknown;
+        replyToken?: unknown;
       };
+
+      const validReplyToken =
+        typeof replyToken === "string" ? replyToken : undefined;
 
       const userId =
         source !== null &&
@@ -111,11 +154,21 @@ app.post(
           ? (message as { text: string }).text
           : undefined;
 
-      console.log("LINE webhook event:", {
+      console.log("LINE webhook event:",
+         {
         type,
         userId,
         text,
       });
+      if (type === "message" && text !== undefined && validReplyToken) {
+      try {
+        await replyLineMessage(validReplyToken, "Hello");
+        console.log("LINE reply sent");
+      }     catch (error) {
+        console.error("LINE Reply API error:", error);
+      }
+    }
+
     }
 
     res.status(200).json({

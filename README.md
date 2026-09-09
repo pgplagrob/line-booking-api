@@ -140,9 +140,9 @@ line-api/
 - [ ] ระบบส่ง Push Notification ได้
 - [ ] REST API มีรูปแบบ Response และ Error ที่พร้อมให้ Frontend ใช้งาน
 
-## สถานะปัจจุบัน (Checkpoint: 25 สิงหาคม 2026)
+## สถานะปัจจุบัน (Checkpoint: 9 กันยายน 2026)
 
-ขณะนี้อยู่ระหว่าง **Step B3: REST API** และเริ่ม **Step B5: LINE Webhook** แล้ว โดยส่วนที่ทำเสร็จและตรวจสอบ TypeScript แล้วมีดังนี้:
+ขณะนี้ทำ **Step B1 ถึง Step B5** เสร็จแล้ว และกำลังเริ่ม **Step B6: เชื่อม LINE เข้ากับระบบจองคิว** โดยงานที่ทำเสร็จและตรวจสอบแล้วมีดังนี้:
 
 - Prisma models: `User`, `Slot` และ `Booking`
 - Prisma Client สำหรับ SQLite ผ่าน `@prisma/adapter-better-sqlite3`
@@ -151,6 +151,12 @@ line-api/
 - Booking API สำหรับสร้างการจอง
 - Validation ของ request, การตรวจ user/slot, การกันผู้ใช้จอง slot เดิมซ้ำ และการกันยอดจองเกิน capacity
 - ใช้ Serializable transaction และ retry เมื่อ transaction conflict
+- สร้าง `POST /webhook` สำหรับรับ event จาก LINE
+- ตรวจสอบ LINE Webhook Signature ด้วย HMAC-SHA256 จาก raw request body
+- เชื่อมต่อ Cloudflare Tunnel เพื่อเปิด HTTPS URL สำหรับทดสอบ Webhook
+- ตั้งค่า Webhook URL และเปิดใช้งาน Webhook ใน LINE Developers
+- อ่านประเภท event, LINE User ID และข้อความจาก Webhook
+- เชื่อมต่อ LINE Reply API และทดสอบส่งข้อความตอบกลับจริงผ่าน LINE
 
 ### API ที่ใช้งานได้แล้ว
 
@@ -169,8 +175,11 @@ line-api/
 
 ### งานถัดไป
 
-1. ทดสอบ REST API และปรับรูปแบบ response/error ให้สม่ำเสมอ
-2. ตรวจสอบ Webhook Signature และเชื่อม Webhook URL กับ LINE Developers
+1. เชื่อม event จาก LINE เข้ากับการดู slot ที่ว่าง
+2. ให้ผู้ใช้เลือก slot และสร้างรายการจองผ่าน LINE
+3. บันทึก LINE User ID กับข้อมูลการจอง
+4. ส่งผลลัพธ์การจองกลับไปยังผู้ใช้ผ่าน LINE
+5. ทดสอบกรณีจองซ้ำและจองเกิน capacity ผ่าน LINE
 
 ## วิธีรัน Backend
 

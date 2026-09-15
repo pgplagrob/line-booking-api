@@ -77,6 +77,80 @@ async function replyLineMessage(
   }
 }
 
+function formatBangkokDateTimeRange(startAt: Date, endAt: Date): string {
+  const date = startAt.toLocaleDateString("th-TH", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const startTime = startAt.toLocaleTimeString("th-TH", {
+    timeZone: "Asia/Bangkok",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const endTime = endAt.toLocaleTimeString("th-TH", {
+    timeZone: "Asia/Bangkok",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  return `${date} ${startTime} - ${endTime}`;
+}
+
+async function getAvailableSlotReplyText(): Promise<string> {
+  const slots = await prisma.slot.findMany({
+    orderBy: {
+      startAt: "asc",
+    },
+    include: {
+      bookings: {
+        where: {
+          status: "CONFIRMED",
+        },
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  const availableSlots = slots
+    .map(({ bookings, ...slot }) => ({
+      ...slot,
+      remaining: Math.max(slot.capacity - bookings.length, 0),
+    }))
+    .filter((slot) => slot.remaining > 0);
+
+  if (availableSlots.length === 0) {
+    return "ตอนนี้ยังไม่มีคิวว่าง";
+  }
+
+  const lines = availableSlots.map(
+    (slot, index) =>
+      `${index + 1}) Slot ID ${slot.id}: ${formatBangkokDateTimeRange(
+        slot.startAt,
+        slot.endAt,
+      )} เหลือ ${slot.remaining} ที่`,
+  );
+
+  return ["คิวที่ว่าง", ...lines, "", 'พิมพ์ "จอง <slotId>" เพื่อจอง'].join(
+    "\n",
+  );
+}
+
+async function handleLineTextMessage(text: string): Promise<string> {
+  const command = text.trim();
+
+  if (command === "คิว" || command === "ดูคิว") {
+    return getAvailableSlotReplyText();
+  }
+
+  return 'ใช้ "คิว" เพื่อดูคิวที่ว่าง หรือ "จอง <slotId>" เพื่อจอง';
+}
+
 app.post(
   "/webhook",
   express.raw({ type: "application/json" }),
@@ -162,7 +236,9 @@ app.post(
       });
       if (type === "message" && text !== undefined && validReplyToken) {
       try {
-        await replyLineMessage(validReplyToken, "Hello");
+        const replyText = await handleLineTextMessage(text);
+
+        await replyLineMessage(validReplyToken, replyText);
         console.log("LINE reply sent");
       }     catch (error) {
         console.error("LINE Reply API error:", error);

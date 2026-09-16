@@ -77,6 +77,56 @@ async function replyLineMessage(
   }
 }
 
+function isQueueRequest(text: string): boolean {
+  return ["คิว", "ดูคิว"].includes(text.trim());
+}
+
+async function getAvailableSlotsMessage(): Promise<string> {
+  const slots = await prisma.slot.findMany({
+    orderBy: {
+      startAt: "asc",
+    },
+    include: {
+      bookings: {
+        where: {
+          status: "CONFIRMED",
+        },
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  const availableSlots = slots
+    .map(({ bookings, ...slot }) => ({
+      ...slot,
+      remaining: Math.max(slot.capacity - bookings.length, 0),
+    }))
+    .filter((slot) => slot.remaining > 0);
+
+  if (availableSlots.length === 0) {
+    return "ตอนนี้ยังไม่มีคิวว่าง";
+  }
+
+  const lines = availableSlots.map((slot) => {
+    const start = slot.startAt.toLocaleTimeString("th-TH", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Bangkok",
+    });
+    const end = slot.endAt.toLocaleTimeString("th-TH", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Bangkok",
+    });
+
+    return `Slot ID ${slot.id}: ${start} - ${end} เหลือ ${slot.remaining} ที่`;
+  });
+
+  return ["คิวที่ว่าง", ...lines].join("\n");
+}
+
 app.post(
   "/webhook",
   express.raw({ type: "application/json" }),
@@ -161,13 +211,17 @@ app.post(
         text,
       });
       if (type === "message" && text !== undefined && validReplyToken) {
-      try {
-        await replyLineMessage(validReplyToken, "Hello");
-        console.log("LINE reply sent");
-      }     catch (error) {
-        console.error("LINE Reply API error:", error);
+        try {
+          const replyText = isQueueRequest(text)
+            ? await getAvailableSlotsMessage()
+            : "พิมพ์ คิว เพื่อดูคิวที่ว่าง";
+
+          await replyLineMessage(validReplyToken, replyText);
+          console.log("LINE reply sent");
+        } catch (error) {
+          console.error("LINE Reply API error:", error);
+        }
       }
-    }
 
     }
 

@@ -9,6 +9,7 @@ import {
   getBookingById,
   getBookingsByUserId,
 } from "./services/booking.js";
+import { getOrCreateUser } from "./services/user.js";
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -81,6 +82,38 @@ function isQueueRequest(text: string): boolean {
   return ["คิว", "ดูคิว"].includes(text.trim());
 }
 
+function parseBookingSlotId(text: string): number | undefined {
+  const match = /^จอง\s+(\d+)$/u.exec(text.trim());
+  const rawSlotId = match?.[1];
+
+  if (rawSlotId === undefined) {
+    return undefined;
+  }
+
+  const slotId = Number(rawSlotId);
+
+  return Number.isInteger(slotId) && slotId > 0 ? slotId : undefined;
+}
+
+function isBookingRequest(text: string): boolean {
+  return text.trim().startsWith("จอง");
+}
+
+function formatSlotTime(slot: { startAt: Date; endAt: Date }): string {
+  const start = slot.startAt.toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Bangkok",
+  });
+  const end = slot.endAt.toLocaleTimeString("th-TH", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Bangkok",
+  });
+
+  return `${start} - ${end}`;
+}
+
 async function getAvailableSlotsMessage(): Promise<string> {
   const slots = await prisma.slot.findMany({
     orderBy: {
@@ -110,21 +143,86 @@ async function getAvailableSlotsMessage(): Promise<string> {
   }
 
   const lines = availableSlots.map((slot) => {
-    const start = slot.startAt.toLocaleTimeString("th-TH", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "Asia/Bangkok",
-    });
-    const end = slot.endAt.toLocaleTimeString("th-TH", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "Asia/Bangkok",
-    });
-
-    return `Slot ID ${slot.id}: ${start} - ${end} เหลือ ${slot.remaining} ที่`;
+    return `Slot ID ${slot.id}: ${formatSlotTime(slot)} เหลือ ${slot.remaining} ที่`;
   });
 
-  return ["คิวที่ว่าง", ...lines].join("\n");
+  return [
+    "คิวที่ว่าง",
+    ...lines,
+    "",
+    'พิมพ์ "จอง <slotId>" เพื่อจอง เช่น จอง 3',
+  ].join("\n");
+}
+
+function getBookingErrorMessage(error: BookingError): string {
+  if (error.code === "SLOT_NOT_FOUND") {
+    return "ไม่พบ Slot นี้ กรุณาตรวจสอบรหัสอีกครั้ง";
+  }
+
+  if (error.code === "DUPLICATE_BOOKING") {
+    return "คุณจอง Slot นี้ไว้แล้ว";
+  }
+
+  if (error.code === "SLOT_FULL") {
+    return "Slot นี้เต็มแล้ว กรุณาเลือกเวลาอื่น";
+  }
+
+  if (error.code === "USER_NOT_FOUND") {
+    return "ไม่พบข้อมูลผู้ใช้ กรุณาลองใหม่อีกครั้ง";
+  }
+
+  return "ระบบขัดข้องชั่วคราว กรุณาลองใหม่ภายหลัง";
+}
+
+async function createLineBookingMessage(
+  lineUserId: string,
+  slotId: number,
+): Promise<string> {
+  const user = await getOrCreateUser(lineUserId);
+
+  try {
+    const booking = await createBooking({
+      userId: user.id,
+      slotId,
+    });
+
+    return [
+      "จองคิวสำเร็จ",
+      `เวลา: ${formatSlotTime(booking.slot)}`,
+      `รหัสการจอง: ${booking.bookingCode}`,
+    ].join("\n");
+  } catch (error) {
+    if (error instanceof BookingError) {
+      return getBookingErrorMessage(error);
+    }
+
+    throw error;
+  }
+}
+
+async function getLineReplyText(
+  text: string,
+  lineUserId: string | undefined,
+): Promise<string> {
+  if (isQueueRequest(text)) {
+    return getAvailableSlotsMessage();
+  }
+
+  if (isBookingRequest(text)) {
+    const slotId = parseBookingSlotId(text);
+
+    if (slotId === undefined) {
+      return 'ใช้รูปแบบ "จอง <slotId>" เช่น จอง 3';
+    }
+
+    if (lineUserId === undefined) {
+      return "ไม่พบ LINE User ID จึงยังจองคิวไม่ได้";
+    }
+
+    return createLineBookingMessage(lineUserId, slotId);
+  }
+
+  return 'ใช้ "คิว" เพื่อดูคิว หรือ "จอง <slotId>" เพื่อจอง';
 }
 
 app.post(
@@ -212,9 +310,7 @@ app.post(
       });
       if (type === "message" && text !== undefined && validReplyToken) {
         try {
-          const replyText = isQueueRequest(text)
-            ? await getAvailableSlotsMessage()
-            : "พิมพ์ คิว เพื่อดูคิวที่ว่าง";
+          const replyText = await getLineReplyText(text, userId);
 
           await replyLineMessage(validReplyToken, replyText);
           console.log("LINE reply sent");

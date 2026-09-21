@@ -25,14 +25,14 @@ Step B7 จะเปลี่ยนประสบการณ์ตอบกล
 
 ## สิ่งที่มีอยู่แล้ว
 
-| ส่วน | ตำแหน่ง | หน้าที่ |
-| --- | --- | --- |
-| Webhook | `backend/src/index.ts` | รับ Event จาก LINE และตรวจสอบ signature |
-| Reply API | `replyLineMessage()` ใน `backend/src/index.ts` | ตอบกลับด้วย text message |
-| Queue command | `getAvailableSlotsMessage()` ใน `backend/src/index.ts` | ดึง Slot ว่างแล้วสร้างข้อความรายการคิว |
-| Booking command | `createLineBookingMessage()` ใน `backend/src/index.ts` | สร้าง Booking แล้วคืนข้อความยืนยัน |
-| Booking rules | `backend/src/services/booking.ts` | ตรวจ duplicate booking และ capacity |
-| User mapping | `backend/src/services/user.ts` | หา/สร้าง User จาก LINE User ID |
+| ส่วน        | ตำแหน่ง                                               | หน้าที่                                                         |
+| --------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| Webhook         | `backend/src/index.ts`                                     | รับ Event จาก LINE และตรวจสอบ signature                |
+| Reply API       | `replyLineMessage()` ใน `backend/src/index.ts`         | ตอบกลับด้วย text message                                    |
+| Queue command   | `getAvailableSlotsMessage()` ใน `backend/src/index.ts` | ดึง Slot ว่างแล้วสร้างข้อความรายการคิว |
+| Booking command | `createLineBookingMessage()` ใน `backend/src/index.ts` | สร้าง Booking แล้วคืนข้อความยืนยัน            |
+| Booking rules   | `backend/src/services/booking.ts`                          | ตรวจ duplicate booking และ capacity                             |
+| User mapping    | `backend/src/services/user.ts`                             | หา/สร้าง User จาก LINE User ID                               |
 
 ## Flow ที่ต้องการ
 
@@ -277,7 +277,7 @@ npm.cmd run build
 - [ ] ผู้ใช้กดปุ่มใน Flex Message เพื่อจอง Slot ได้
 - [ ] ผู้ใช้ได้รับ Flex Message ยืนยันเมื่อจองสำเร็จ
 - [ ] Error สำคัญยังถูกตอบเป็นข้อความที่เข้าใจง่าย
-- [ ] Command เดิม `คิว`, `ดูคิว`, และ `จอง <slotId>` ยังใช้งานได้
+- [X] Command เดิม `คิว`, `ดูคิว`, และ `จอง <slotId>` ยังใช้งานได้
 - [ ] Webhook ยังตรวจ LINE signature จาก raw body ได้เหมือนเดิม
 - [ ] Secret และ Access Token ไม่ถูก log และไม่ถูก commit
 - [ ] ทดสอบบน LINE mobile จริงแล้ว Flex Message แสดงผลถูกต้อง

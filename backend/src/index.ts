@@ -28,6 +28,50 @@ if (!lineChannelAccessToken) {
 const verifiedLineChannelSecret = lineChannelSecret;
 const verifiedLineChannelAccessToken = lineChannelAccessToken;
 
+type LineFlexContainer = {
+  type: "bubble" | "carousel";
+  [key: string]: unknown;
+};
+
+type LineReplyMessage =
+  | {
+      type: "text";
+      text: string;
+    }
+  | {
+      type: "flex";
+      altText: string;
+      contents: LineFlexContainer;
+    };
+
+type AvailableSlot = {
+  id: number;
+  startAt: Date;
+  endAt: Date;
+  capacity: number;
+  createdAt: Date;
+  updatedAt: Date;
+  bookedCount: number;
+  remaining: number;
+};
+
+type BookingWithSlot = {
+  id: number;
+  bookingCode: string;
+  status: string;
+  slot: {
+    startAt: Date;
+    endAt: Date;
+  };
+};
+
+function createTextMessage(text: string): LineReplyMessage {
+  return {
+    type: "text",
+    text,
+  };
+}
+
 function verifyLineSignature(
   rawBody: Buffer,
   signature: string,
@@ -47,7 +91,7 @@ function verifyLineSignature(
 
 async function replyLineMessage(
   replyToken: string,
-  text: string,
+  message: LineReplyMessage,
 ): Promise<void> {
   const response = await fetch(
     "https://api.line.me/v2/bot/message/reply",
@@ -59,12 +103,7 @@ async function replyLineMessage(
       },
       body: JSON.stringify({
         replyToken,
-        messages: [
-          {
-            type: "text",
-            text,
-          },
-        ],
+        messages: [message],
       }),
     },
   );
@@ -80,6 +119,10 @@ async function replyLineMessage(
 
 function isQueueRequest(text: string): boolean {
   return ["คิว", "ดูคิว"].includes(text.trim());
+}
+
+function isBookingStatusRequest(text: string): boolean {
+  return ["สถานะ", "ดูการจอง", "จองของฉัน"].includes(text.trim());
 }
 
 function parseBookingSlotId(text: string): number | undefined {
@@ -114,7 +157,7 @@ function formatSlotTime(slot: { startAt: Date; endAt: Date }): string {
   return `${start} - ${end}`;
 }
 
-async function getAvailableSlotsMessage(): Promise<string> {
+async function getSlotsWithAvailability(): Promise<AvailableSlot[]> {
   const slots = await prisma.slot.findMany({
     orderBy: {
       startAt: "asc",
@@ -131,27 +174,220 @@ async function getAvailableSlotsMessage(): Promise<string> {
     },
   });
 
-  const availableSlots = slots
+  return slots
     .map(({ bookings, ...slot }) => ({
       ...slot,
+      bookedCount: bookings.length,
       remaining: Math.max(slot.capacity - bookings.length, 0),
-    }))
-    .filter((slot) => slot.remaining > 0);
+    }));
+}
 
-  if (availableSlots.length === 0) {
-    return "ตอนนี้ยังไม่มีคิวว่าง";
-  }
+async function getAvailableSlots(): Promise<AvailableSlot[]> {
+  const slots = await getSlotsWithAvailability();
 
-  const lines = availableSlots.map((slot) => {
-    return `Slot ID ${slot.id}: ${formatSlotTime(slot)} เหลือ ${slot.remaining} ที่`;
-  });
+  return slots.filter((slot) => slot.remaining > 0);
+}
 
-  return [
-    "คิวที่ว่าง",
-    ...lines,
-    "",
-    'พิมพ์ "จอง <slotId>" เพื่อจอง เช่น จอง 3',
-  ].join("\n");
+function createAvailableSlotsFlexMessage(
+  slots: AvailableSlot[],
+): LineReplyMessage {
+  const slotContents = slots.slice(0, 10).flatMap((slot) => [
+    {
+      type: "separator",
+      margin: "md",
+    },
+    {
+      type: "box",
+      layout: "vertical",
+      margin: "md",
+      spacing: "sm",
+      contents: [
+        {
+          type: "text",
+          text: `Slot ID ${slot.id}`,
+          weight: "bold",
+          size: "md",
+        },
+        {
+          type: "text",
+          text: formatSlotTime(slot),
+          size: "sm",
+          color: "#555555",
+        },
+        {
+          type: "text",
+          text: `เหลือ ${slot.remaining} ที่`,
+          size: "sm",
+          color: "#555555",
+        },
+        {
+          type: "button",
+          style: "primary",
+          height: "sm",
+          margin: "sm",
+          action: {
+            type: "message",
+            label: "จองคิว",
+            text: `จอง ${slot.id}`,
+          },
+        },
+      ],
+    },
+  ]);
+
+  return {
+    type: "flex",
+    altText: "คิวที่ว่าง",
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "คิวที่ว่าง",
+            weight: "bold",
+            size: "lg",
+          },
+          {
+            type: "text",
+            text: 'กด "จองคิว" ในเวลาที่ต้องการ',
+            size: "sm",
+            color: "#666666",
+            wrap: true,
+            margin: "sm",
+          },
+          ...slotContents,
+        ],
+      },
+    },
+  };
+}
+
+function createBookingConfirmationFlexMessage(booking: {
+  id: number;
+  bookingCode: string;
+  slot: {
+    startAt: Date;
+    endAt: Date;
+  };
+}): LineReplyMessage {
+  return {
+    type: "flex",
+    altText: "จองคิวสำเร็จ",
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "จองคิวสำเร็จ",
+            weight: "bold",
+            size: "lg",
+          },
+          {
+            type: "separator",
+            margin: "md",
+          },
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "md",
+            spacing: "sm",
+            contents: [
+              {
+                type: "text",
+                text: `เวลา: ${formatSlotTime(booking.slot)}`,
+                wrap: true,
+              },
+              {
+                type: "text",
+                text: `รหัสการจอง: ${booking.bookingCode}`,
+                wrap: true,
+                size: "sm",
+                color: "#555555",
+              },
+              {
+                type: "text",
+                text: `Ref: ${booking.id}`,
+                size: "xs",
+                color: "#999999",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  };
+}
+
+function createBookingStatusFlexMessage(
+  bookings: BookingWithSlot[],
+): LineReplyMessage {
+  const bookingContents = bookings.slice(0, 10).flatMap((booking) => [
+    {
+      type: "separator",
+      margin: "md",
+    },
+    {
+      type: "box",
+      layout: "vertical",
+      margin: "md",
+      spacing: "sm",
+      contents: [
+        {
+          type: "text",
+          text: `เวลา: ${formatSlotTime(booking.slot)}`,
+          weight: "bold",
+          size: "sm",
+          wrap: true,
+        },
+        {
+          type: "text",
+          text: `สถานะ: ${booking.status}`,
+          size: "sm",
+          color: booking.status === "CONFIRMED" ? "#1DB446" : "#999999",
+        },
+        {
+          type: "text",
+          text: `รหัสการจอง: ${booking.bookingCode}`,
+          size: "xs",
+          color: "#555555",
+          wrap: true,
+        },
+        {
+          type: "text",
+          text: `Ref: ${booking.id}`,
+          size: "xs",
+          color: "#999999",
+        },
+      ],
+    },
+  ]);
+
+  return {
+    type: "flex",
+    altText: "สถานะการจอง",
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "สถานะการจอง",
+            weight: "bold",
+            size: "lg",
+          },
+          ...bookingContents,
+        ],
+      },
+    },
+  };
 }
 
 function getBookingErrorMessage(error: BookingError): string {
@@ -177,7 +413,7 @@ function getBookingErrorMessage(error: BookingError): string {
 async function createLineBookingMessage(
   lineUserId: string,
   slotId: number,
-): Promise<string> {
+): Promise<LineReplyMessage> {
   const user = await getOrCreateUser(lineUserId);
 
   try {
@@ -186,43 +422,66 @@ async function createLineBookingMessage(
       slotId,
     });
 
-    return [
-      "จองคิวสำเร็จ",
-      `เวลา: ${formatSlotTime(booking.slot)}`,
-      `รหัสการจอง: ${booking.bookingCode}`,
-    ].join("\n");
+    return createBookingConfirmationFlexMessage(booking);
   } catch (error) {
     if (error instanceof BookingError) {
-      return getBookingErrorMessage(error);
+      return createTextMessage(getBookingErrorMessage(error));
     }
 
     throw error;
   }
 }
 
-async function getLineReplyText(
+async function getLineBookingStatusMessage(
+  lineUserId: string | undefined,
+): Promise<LineReplyMessage> {
+  if (lineUserId === undefined) {
+    return createTextMessage("ไม่พบ LINE User ID จึงยังดูสถานะการจองไม่ได้");
+  }
+
+  const user = await getOrCreateUser(lineUserId);
+  const bookings = await getBookingsByUserId(user.id);
+
+  if (bookings.length === 0) {
+    return createTextMessage("ยังไม่พบการจองของคุณ");
+  }
+
+  return createBookingStatusFlexMessage(bookings);
+}
+
+async function getLineReplyMessage(
   text: string,
   lineUserId: string | undefined,
-): Promise<string> {
+): Promise<LineReplyMessage> {
   if (isQueueRequest(text)) {
-    return getAvailableSlotsMessage();
+    const slots = await getAvailableSlots();
+
+    if (slots.length === 0) {
+      return createTextMessage("ตอนนี้ยังไม่มีคิวว่าง");
+    }
+
+    return createAvailableSlotsFlexMessage(slots);
+  }
+
+  if (isBookingStatusRequest(text)) {
+    return getLineBookingStatusMessage(lineUserId);
   }
 
   if (isBookingRequest(text)) {
     const slotId = parseBookingSlotId(text);
 
     if (slotId === undefined) {
-      return 'ใช้รูปแบบ "จอง <slotId>" เช่น จอง 3';
+      return createTextMessage('ใช้รูปแบบ "จอง <slotId>" เช่น จอง 3');
     }
 
     if (lineUserId === undefined) {
-      return "ไม่พบ LINE User ID จึงยังจองคิวไม่ได้";
+      return createTextMessage("ไม่พบ LINE User ID จึงยังจองคิวไม่ได้");
     }
 
     return createLineBookingMessage(lineUserId, slotId);
   }
 
-  return 'ใช้ "คิว" เพื่อดูคิว หรือ "จอง <slotId>" เพื่อจอง';
+  return createTextMessage('ใช้ "คิว" เพื่อดูคิว หรือ "จอง <slotId>" เพื่อจอง');
 }
 
 app.post(
@@ -310,9 +569,9 @@ app.post(
       });
       if (type === "message" && text !== undefined && validReplyToken) {
         try {
-          const replyText = await getLineReplyText(text, userId);
+          const replyMessage = await getLineReplyMessage(text, userId);
 
-          await replyLineMessage(validReplyToken, replyText);
+          await replyLineMessage(validReplyToken, replyMessage);
           console.log("LINE reply sent");
         } catch (error) {
           console.error("LINE Reply API error:", error);
@@ -355,29 +614,9 @@ app.get("/health/db", async (_req, res) => {
 });
 app.get("/slots", async (_req, res) => {
   try {
-    const slots = await prisma.slot.findMany({
-      orderBy: {
-        startAt: "asc",
-      },
-      include: {
-        bookings: {
-          where: {
-            status: "CONFIRMED",
-          },
-          select: {
-            id: true,
-          },
-        },
-      },
-    });
+    const slots = await getSlotsWithAvailability();
 
-    const result = slots.map(({ bookings, ...slot }) => ({
-      ...slot,
-      bookedCount: bookings.length,
-      remaining: Math.max(slot.capacity - bookings.length, 0),
-    }));
-
-    res.status(200).json({ slots: result });
+    res.status(200).json({ slots });
   } catch (error) {
     console.error("Get slots failed:", error);
 

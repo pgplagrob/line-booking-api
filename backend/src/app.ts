@@ -5,6 +5,7 @@ import { lineRouter } from "./routes/line.js";
 export function createApp() {
   const app = express();
 
+  app.use(lineRouter);
   app.use(express.json());
 
   app.get("/", (_req, res) => {
@@ -14,7 +15,6 @@ export function createApp() {
   });
 
   app.use(bookingRouter);
-  app.use(lineRouter);
 
   return app;
 }

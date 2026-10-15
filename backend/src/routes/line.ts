@@ -9,6 +9,7 @@ import {
   getBookingsByUserId,
   getSlotsWithAvailability,
 } from "../services/booking.js";
+import { parseBookingSlotId } from "../services/line-command.js";
 import { getOrCreateUser } from "../services/user.js";
 import type { LineReplyMessage, BookingWithSlot, AvailableSlot } from "../types/line.js";
 
@@ -78,18 +79,6 @@ function isQueueRequest(text: string): boolean {
 
 function isBookingStatusRequest(text: string): boolean {
   return ["สถานะ", "ดูการจอง", "จองของฉัน"].includes(text.trim());
-}
-
-function parseBookingSlotId(text: string): number | undefined {
-  const match = /^จอง\s+(\d+)$/u.exec(text.trim());
-  const rawSlotId = match?.[1];
-
-  if (rawSlotId === undefined) {
-    return undefined;
-  }
-
-  const slotId = Number(rawSlotId);
-  return Number.isInteger(slotId) && slotId > 0 ? slotId : undefined;
 }
 
 function isBookingRequest(text: string): boolean {
@@ -366,7 +355,9 @@ async function getLineReplyMessage(
     const slotId = parseBookingSlotId(text);
 
     if (slotId === undefined) {
-      return createTextMessage('ใช้รูปแบบ "จอง <slotId>" เช่น จอง 3');
+      return createTextMessage(
+        'ยังไม่ได้ระบุ Slot ID: พิมพ์ "คิว" เพื่อดูคิว แล้วกดปุ่มจอง หรือพิมพ์ "จอง 3"',
+      );
     }
 
     if (lineUserId === undefined) {

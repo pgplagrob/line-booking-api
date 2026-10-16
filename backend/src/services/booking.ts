@@ -121,39 +121,23 @@ export async function createBooking(input: CreateBookingInput) {
 
 export async function getBookingById(bookingId: number) {
   return prisma.booking.findUnique({
-    where: {
-      id: bookingId,
-    },
-    include: {
-      user: true,
-      slot: true,
-    },
+    where: { id: bookingId },
+    include: { user: true, slot: true },
   });
 }
 
 export async function getBookingsByUserId(userId: number) {
   return prisma.booking.findMany({
-    where: {
-      userId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      slot: true,
-    },
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    include: { slot: true },
   });
 }
 
 export async function cancelBooking(bookingId: number) {
   const booking = await prisma.booking.findUnique({
-    where: {
-      id: bookingId,
-    },
-    select: {
-      id: true,
-      status: true,
-    },
+    where: { id: bookingId },
+    select: { id: true, status: true },
   });
 
   if (!booking) {
@@ -168,9 +152,7 @@ export async function cancelBooking(bookingId: number) {
   }
 
   return prisma.booking.update({
-    where: {
-      id: bookingId,
-    },
+    where: { id: bookingId },
     data: {
       status: "CANCELLED",
       cancelledAt: new Date(),
@@ -180,4 +162,28 @@ export async function cancelBooking(bookingId: number) {
       slot: true,
     },
   });
+}
+
+export async function getSlotsWithAvailability() {
+  const slots = await prisma.slot.findMany({
+    orderBy: { startAt: "asc" },
+    include: {
+      bookings: {
+        where: { status: "CONFIRMED" },
+        select: { id: true },
+      },
+    },
+  });
+
+  return slots.map(({ bookings, ...slot }) => ({
+    ...slot,
+    bookedCount: bookings.length,
+    remaining: Math.max(slot.capacity - bookings.length, 0),
+  }));
+}
+
+export async function getAvailableSlots() {
+  const slots = await getSlotsWithAvailability();
+
+  return slots.filter((slot) => slot.remaining > 0);
 }

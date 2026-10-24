@@ -1,4 +1,4 @@
-# LINE Booking Context
+# LINE Booking API
 
 Glossary for the LINE-based queue booking system.
 

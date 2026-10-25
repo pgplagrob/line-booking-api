@@ -12,6 +12,8 @@ line-booking-api/
 
 /backend/src/generated/prisma
 /backend/dist/
+/frontend/.next/
+/frontend/out/
 
 # Local SQLite database files
 /backend/dev.db

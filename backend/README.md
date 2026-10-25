@@ -5,7 +5,7 @@ Express + TypeScript API สำหรับระบบจองคิวผ่�
 ## เริ่มใช้งาน
 
 ```bash
-npm install
+bun install
 ```
 
 สร้าง `.env` จากไฟล์ตัวอย่างก่อนเริ่มใช้งานครั้งแรก:
@@ -17,9 +17,9 @@ Copy-Item .env.example .env
 จากนั้นเตรียมฐานข้อมูล สร้าง Prisma Client และเปิดเซิร์ฟเวอร์:
 
 ```bash
-npx prisma migrate dev
-npx prisma generate
-npm run dev
+bunx prisma migrate dev --config prisma.config.ts
+bunx prisma generate --config prisma.config.ts
+bun run dev
 ```
 
 เซิร์ฟเวอร์ทำงานที่ `http://localhost:3000` โดยค่าเริ่มต้น
@@ -48,6 +48,7 @@ backend/
 │   └── types/
 │       └── line.ts
 ├── package.json
+├── bun.lock
 ├── tsconfig.json
 ├── prisma.config.ts
 └── README.md
@@ -91,7 +92,7 @@ backend/
 ### `src/lib/prisma.ts`
 
 - Initial Prisma Client
-- สร้าง connection แบบที่โปรเจกต์ใช้ เช่น SQLite หรือ database อื่น ๆ
+- เชื่อม SQLite ผ่าน `@prisma/adapter-libsql` ซึ่งรองรับ Bun runtime
 - เป็น layer ที่ route/service เรียกใช้งาน Prisma ได้แบบสะดวก
 
 ### `src/routes/booking.ts`

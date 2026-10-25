@@ -12,9 +12,9 @@
   │     ↓
   │   LINE Messaging API / Webhook
   │
-  └── Frontend (เริ่มพัฒนาหลัง Backend พร้อม)
+  └── Admin Dashboard (Bun + React)
           ↓
-Node.js + Express Backend
+Bun + Express Backend
   ├── REST API
   ├── Booking Service
   ├── Slot Service
@@ -51,12 +51,11 @@ line-api/
 
 > สถานะ: กำลังพัฒนา — ให้ทำ Phase นี้ให้เสร็จก่อนเริ่ม Frontend
 
-## Step B1: สร้าง Node.js + Express + TypeScript
+## Step B1: สร้าง Bun + Express + TypeScript
 
-- [X] สร้างโปรเจกต์ Node.js
+- [X] สร้างโปรเจกต์และใช้ Bun เป็น runtime/package manager
 - [X] ติดตั้ง Express
 - [X] ติดตั้ง TypeScript
-- [X] ติดตั้ง `tsx`
 - [X] สร้าง Express Server
 - [X] เปิดใช้ `express.json()`
 - [X] ทดสอบเซิร์ฟเวอร์ที่ `http://localhost:3000`
@@ -145,7 +144,7 @@ line-api/
 ขณะนี้ทำ **Step B1 ถึง Step B5** เสร็จแล้ว และกำลังเริ่ม **Step B6: เชื่อม LINE เข้ากับระบบจองคิว** โดยงานที่ทำเสร็จและตรวจสอบแล้วมีดังนี้:
 
 - Prisma models: `User`, `Slot` และ `Booking`
-- Prisma Client สำหรับ SQLite ผ่าน `@prisma/adapter-better-sqlite3`
+- Prisma Client สำหรับ SQLite ผ่าน `@prisma/adapter-libsql`
 - Database health check และการเชื่อมต่อ/ปิดการเชื่อมต่อ Prisma ตาม lifecycle ของ server
 - Slot API สำหรับดู เพิ่ม และลบช่วงเวลา
 - Booking API สำหรับสร้างการจอง
@@ -189,7 +188,7 @@ line-api/
 2. ติดตั้ง dependencies
 
    ```bash
-   npm install
+   bun install
    ```
 3. คัดลอก `.env.example` เป็น `.env` ภายใน `backend/`
 
@@ -199,13 +198,13 @@ line-api/
 4. รัน Migration และ Generate Prisma Client
 
    ```bash
-   npx prisma migrate dev
-   npx prisma generate
+   bunx prisma migrate dev --config prisma.config.ts
+   bunx prisma generate --config prisma.config.ts
    ```
 5. เริ่ม Development Server
 
    ```bash
-   npm run dev
+   bun run dev
    ```
 6. ตรวจสอบ Server และ Database
 
@@ -229,17 +228,18 @@ line-api/
 
 # Phase 2: Frontend
 
-> สถานะ: ยังไม่เริ่ม — เริ่ม Phase นี้หลัง Backend ผ่าน Definition of Done
+> สถานะ: กำลังพัฒนา Admin Dashboard ด้วย Bun + React + shadcn/ui + Tailwind CSS
 
 ## Step F1: กำหนดขอบเขตและสร้างโปรเจกต์ Frontend
 
-- [ ] กำหนดกลุ่มผู้ใช้และหน้าจอที่ต้องมี
-- [ ] เลือก Frontend framework
-- [ ] สร้างโปรเจกต์และโครงสร้างหน้า
-- [ ] กำหนดค่า Backend API URL ผ่าน environment variable
+- [X] กำหนด Admin Dashboard สำหรับดูภาพรวมคิวลูกค้า
+- [X] เลือก React + TypeScript + shadcn/ui + Tailwind CSS โดยใช้ Bun เป็นตัวรัน
+- [X] สร้างโปรเจกต์โครงสร้างเรียบง่ายใน `frontend`
 
-## Step F2: สร้างหน้าจอระบบจองคิว
+## Step F2: สร้างหน้าจอ Admin
 
+- [X] หน้า Dashboard แสดงยอดจองทั้งหมด รอดำเนินการ และเสร็จสิ้น
+- [X] ตารางลูกค้า เวลา และสถานะแบบข้อมูลสมมติ
 - [ ] หน้าดูช่วงเวลาที่ว่าง
 - [ ] หน้าสร้างและยืนยันการจอง
 - [ ] หน้าดูรายละเอียดการจอง
@@ -249,11 +249,12 @@ line-api/
 ## Step F3: เชื่อม Frontend กับ Backend
 
 - [ ] เชื่อม `GET /slots`
+- [ ] เชื่อม `POST /slots`
 - [ ] เชื่อม `POST /bookings`
 - [ ] เชื่อม `GET /bookings/:id`
 - [ ] เชื่อม `GET /users/:userId/bookings`
 - [ ] เชื่อม `DELETE /bookings/:id`
-- [ ] แสดงสถานะ Loading, Empty และ Error
+- [ ] แสดงสถานะ Loading, Empty และ Error สำหรับรายการ Slot
 
 ## Step F4: ทดสอบ Frontend แบบครบ Flow
 

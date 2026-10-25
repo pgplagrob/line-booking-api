@@ -43,7 +43,8 @@ line-booking-api/
 ├─ CONTEXT.md                        คำศัพท์ของโดเมนงาน
 └─ backend/
    ├─ .env.example                   แบบฟอร์มตัวแปรลับและการตั้งค่า
-   ├─ package.json                   dependency และคำสั่ง npm
+   ├─ package.json                   dependency และคำสั่ง Bun
+   ├─ bun.lock                       เวอร์ชัน dependency ที่ Bun ล็อกไว้
    ├─ prisma/
    │  └─ schema.prisma               แบบจำลอง database
    └─ src/
@@ -62,16 +63,16 @@ line-booking-api/
 
 - `express`: รับ HTTP request และสร้าง API/webhook
 - `@prisma/client`: ใช้คำสั่ง TypeScript คุยกับ database
-- `@prisma/adapter-better-sqlite3`: ตัวเชื่อม Prisma กับ SQLite
+- `@prisma/adapter-libsql`: ตัวเชื่อม Prisma กับ SQLite ที่รองรับ Bun runtime
 - `dotenv`: โหลดค่าจาก `.env`
-- `tsx`: รัน TypeScript ตอนพัฒนา
+- `bun`: รัน TypeScript โดยตรงและ watch การเปลี่ยนแปลงตอนพัฒนา
 - `prisma`: สร้าง client และจัดการ schema/migration
 
 คำสั่งพัฒนาในปัจจุบันคือ:
 
 ```powershell
 cd backend
-npm.cmd run dev
+bun run dev
 ```
 
 ### `backend/.env.example`
@@ -166,7 +167,7 @@ Slot 1 ช่วง ----- มีได้หลาย ----- Booking
 
 ไม่ต้องเรียนให้ครบทุกบทก่อน ให้เรียนตามลำดับนี้และกลับมาใช้กับโค้ดทันที
 
-### 1. JavaScript/Node.js ที่จำเป็น
+### 1. JavaScript/TypeScript ที่จำเป็นสำหรับ Bun
 
 หัวข้อ:
 
@@ -232,7 +233,7 @@ Slot 1 ช่วง ----- มีได้หลาย ----- Booking
 
 ```powershell
 cd backend
-npm.cmd run dev
+bun run dev
 ```
 
 ตั้ง base URL เป็น `http://localhost:3000`

@@ -1,6 +1,8 @@
-import { UserRound } from "lucide-react";
+import { CalendarPlus, UserRound } from "lucide-react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   Table,
@@ -37,9 +39,18 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
-          <Badge className="mt-[17px] border-0 bg-emerald-950 px-3 py-1 text-sm font-medium text-emerald-500">
-            Admin
-          </Badge>
+          <div className="flex items-center gap-2 pt-2 sm:pt-3">
+            <Link
+              href="/add-slot"
+              className={buttonVariants({ size: "sm", className: "h-9 px-3" })}
+            >
+              <CalendarPlus aria-hidden="true" className="size-4" />
+              เพิ่ม Slot
+            </Link>
+            <Badge className="hidden border-0 bg-emerald-950 px-3 py-1 text-sm font-medium text-emerald-500 sm:inline-flex">
+              Admin
+            </Badge>
+          </div>
         </CardHeader>
 
         <CardContent className="px-[14px] pb-[15px] pt-0">

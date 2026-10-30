@@ -1,22 +1,16 @@
-import { CalendarPlus, UserRound } from "lucide-react";
+import { ArrowRight, CalendarClock, CalendarDays, Clock3, UserRound, UsersRound } from "lucide-react";
 import Link from "next/link";
 
+import { AppHeader } from "@/components/app-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 const summary = [
-  { value: 12, label: "จองทั้งหมด" },
-  { value: 8, label: "รอดำเนินการ" },
-  { value: 4, label: "เสร็จสิ้น" },
+  { value: 12, label: "การจองทั้งหมด", icon: CalendarDays },
+  { value: 8, label: "กำลังรอคิว", icon: Clock3 },
+  { value: 4, label: "ลูกค้าวันนี้", icon: UsersRound },
 ];
 
 const bookings = [
@@ -27,86 +21,90 @@ const bookings = [
 
 export default function AdminDashboardPage() {
   return (
-    <main className="flex min-h-screen items-start justify-center bg-black px-3 py-3 text-neutral-100 sm:items-center sm:px-6">
-      <Card className="w-full max-w-[608px] overflow-hidden rounded-[22px] border-neutral-800 bg-black shadow-none">
-        <CardHeader className="flex-row items-start justify-between px-[14px] pb-0 pt-[17px]">
+    <div className="min-h-screen bg-neutral-50 text-neutral-950">
+      <AppHeader />
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-[23px] font-bold leading-tight tracking-[-0.03em]">
-              Admin Dashboard
-            </h1>
-            <p className="mt-2 text-[13px] leading-none text-neutral-300">
-              ตัวอย่างข้อมูลสมมติ
-            </p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">Overview</p>
+            <h1 className="text-3xl font-bold tracking-tight">แดชบอร์ด</h1>
+            <p className="mt-2 text-sm text-neutral-500">ภาพรวมการจองและคิวของวันนี้</p>
           </div>
+          <Link href="/slots" className={buttonVariants()}>
+            <CalendarClock aria-hidden="true" className="size-4" />
+            จัดการ Slot
+          </Link>
+        </div>
 
-          <div className="flex items-center gap-2 pt-2 sm:pt-3">
-            <Link
-              href="/add-slot"
-              className={buttonVariants({ size: "sm", className: "h-9 px-3" })}
-            >
-              <CalendarPlus aria-hidden="true" className="size-4" />
-              เพิ่ม Slot
-            </Link>
-            <Badge className="hidden border-0 bg-emerald-950 px-3 py-1 text-sm font-medium text-emerald-500 sm:inline-flex">
-              Admin
-            </Badge>
-          </div>
-        </CardHeader>
+        <section aria-label="สรุปข้อมูลการจอง" className="grid gap-4 sm:grid-cols-3">
+          {summary.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Card key={item.label} className="border-neutral-200 bg-white shadow-sm">
+                <CardContent className="p-6">
+                  <span className="mb-5 flex size-10 items-center justify-center rounded-xl bg-neutral-100 text-neutral-700">
+                    <Icon aria-hidden="true" className="size-5" />
+                  </span>
+                  <p className="text-3xl font-bold tracking-tight">{item.value}</p>
+                  <p className="mt-1 text-sm text-neutral-500">{item.label}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </section>
 
-        <CardContent className="px-[14px] pb-[15px] pt-0">
-          <section
-            aria-label="สรุปข้อมูลการจอง"
-            className="grid grid-cols-3 pb-[25px] pt-[38px]"
-          >
-            {summary.map((item) => (
-              <div key={item.label} className="pl-4">
-                <p className="text-[24px] font-semibold leading-none">{item.value}</p>
-                <p className="mt-2 text-[12px] text-neutral-300">{item.label}</p>
+        <section className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
+          <Card className="border-neutral-200 bg-white shadow-sm">
+            <CardHeader className="flex-row items-center justify-between border-b border-neutral-100 px-6 py-5">
+              <div>
+                <h2 className="font-semibold">คิวล่าสุด</h2>
+                <p className="mt-1 text-xs text-neutral-500">รายการจองที่กำลังดำเนินการ</p>
               </div>
-            ))}
-          </section>
+              <button className="text-xs font-medium text-neutral-500 hover:text-neutral-950">ดูทั้งหมด</button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableBody>
+                  {bookings.map((booking) => (
+                    <TableRow key={booking.id} className="border-neutral-100">
+                      <TableCell className="pl-6">
+                        <div className="flex items-center gap-3">
+                          <span className="flex size-9 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
+                            <UserRound aria-hidden="true" className="size-4" />
+                          </span>
+                          <span className="font-medium">{booking.customer}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-neutral-500">{booking.time} น.</TableCell>
+                      <TableCell className="pr-6 text-right">
+                        <Badge variant={booking.status === "waiting" ? "waiting" : "success"}>
+                          {booking.status === "waiting" ? "รอคิว" : "เสร็จสิ้น"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
-          <Table className="table-fixed">
-            <TableHeader>
-              <TableRow className="border-neutral-900">
-                <TableHead className="w-[43%] px-0 text-[12px] text-neutral-300">
-                  ลูกค้า
-                </TableHead>
-                <TableHead className="w-[25%] px-0 text-[12px] text-neutral-300">
-                  เวลา
-                </TableHead>
-                <TableHead className="w-[32%] px-0 text-[12px] text-neutral-300">
-                  สถานะ
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-
-            <TableBody>
-              {bookings.map((booking) => (
-                <TableRow key={booking.id} className="h-14 border-neutral-900 hover:bg-transparent">
-                  <TableCell className="px-0 py-2">
-                    <div className="flex items-center gap-3">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-800">
-                        <UserRound aria-hidden="true" className="size-[18px]" strokeWidth={1.6} />
-                      </span>
-                      <span className="font-semibold">{booking.customer}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-0 py-2 text-base">{booking.time}</TableCell>
-                  <TableCell className="px-0 py-2">
-                    <Badge
-                      variant={booking.status === "waiting" ? "waiting" : "success"}
-                      className="border-0 px-3 py-1 text-sm font-normal"
-                    >
-                      {booking.status === "waiting" ? "รอคิว" : "เสร็จสิ้น"}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </main>
+          <Card className="border-neutral-200 bg-white shadow-sm">
+            <CardContent className="flex h-full min-h-64 flex-col justify-between p-6">
+              <div>
+                <span className="mb-5 flex size-10 items-center justify-center rounded-xl bg-neutral-950 text-white">
+                  <CalendarClock aria-hidden="true" className="size-5" />
+                </span>
+                <h2 className="text-lg font-semibold">จัดการช่วงเวลา</h2>
+                <p className="mt-2 text-sm leading-6 text-neutral-500">เพิ่มช่วงเวลาใหม่ ตรวจจำนวนที่ว่าง หรือลบ Slot ที่ไม่ใช้งานแล้ว</p>
+              </div>
+              <Link href="/slots" className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-neutral-950">
+                ไปหน้าจัดการ
+                <ArrowRight aria-hidden="true" className="size-4" />
+              </Link>
+            </CardContent>
+          </Card>
+        </section>
+      </main>
+    </div>
   );
 }

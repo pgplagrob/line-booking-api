@@ -47,25 +47,21 @@ bookingRouter.post("/slots", async (req, res) => {
     return;
   }
 
-  const { date, startTime, endTime, capacity } = body as {
-    date?: unknown;
+  const { startTime, endTime, capacity } = body as {
     startTime?: unknown;
     endTime?: unknown;
     capacity?: unknown;
   };
 
-  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
   const timePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
 
   if (
-    typeof date !== "string" ||
     typeof startTime !== "string" ||
     typeof endTime !== "string" ||
-    !datePattern.test(date) ||
     !timePattern.test(startTime) ||
     !timePattern.test(endTime)
   ) {
-    res.status(400).json({ message: "Use date YYYY-MM-DD and time HH:mm" });
+    res.status(400).json({ message: "Use time HH:mm" });
     return;
   }
 
@@ -74,8 +70,14 @@ bookingRouter.post("/slots", async (req, res) => {
     return;
   }
 
-  const startAt = new Date(`${date}T${startTime}:00+07:00`);
-  const endAt = new Date(`${date}T${endTime}:00+07:00`);
+  const bangkokDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const startAt = new Date(`${bangkokDate}T${startTime}:00+07:00`);
+  const endAt = new Date(`${bangkokDate}T${endTime}:00+07:00`);
 
   if (endAt <= startAt) {
     res.status(400).json({ message: "endTime must be later than startTime" });

@@ -3,10 +3,12 @@ import { prisma } from "../lib/prisma.js";
 import {
   BookingError,
   cancelBooking,
+  completeBooking,
   createBooking,
   getBookingById,
   getBookingsByUserId,
   getSlotsWithAvailability,
+  getTodayBookings,
 } from "../services/booking.js";
 
 const bookingRouter = express.Router();
@@ -36,6 +38,52 @@ bookingRouter.get("/slots", async (_req, res) => {
   } catch (error) {
     console.error("Get slots failed:", error);
     res.status(500).json({ message: "Cannot get slots" });
+  }
+});
+
+bookingRouter.get("/admin/bookings", async (_req, res) => {
+  try {
+    const dashboard = await getTodayBookings();
+    res.status(200).json(dashboard);
+  } catch (error) {
+    console.error("Get admin bookings failed:", error);
+    res.status(500).json({ message: "Cannot get today's bookings" });
+  }
+});
+
+bookingRouter.patch("/admin/bookings/:id/complete", async (req, res) => {
+  const bookingId = Number(req.params.id);
+
+  if (!Number.isInteger(bookingId) || bookingId <= 0) {
+    res.status(400).json({
+      code: "INVALID_BOOKING_ID",
+      message: "Booking ID must be a positive integer",
+    });
+    return;
+  }
+
+  try {
+    const booking = await completeBooking(bookingId);
+    res.status(200).json({
+      message: "Booking completed successfully",
+      booking,
+    });
+  } catch (error) {
+    if (error instanceof BookingError) {
+      const status = error.code === "BOOKING_NOT_FOUND" ? 404 : 409;
+
+      res.status(status).json({
+        code: error.code,
+        message: error.message,
+      });
+      return;
+    }
+
+    console.error("Complete booking failed:", error);
+    res.status(500).json({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Cannot complete booking",
+    });
   }
 });
 

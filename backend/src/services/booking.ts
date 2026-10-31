@@ -1,8 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/prisma.js";
-
-const CONFIRMED_STATUS = "CONFIRMED";
+import {
+  CANCELLED_STATUS,
+  CAPACITY_OCCUPYING_STATUSES,
+  COMPLETED_STATUS,
+  CONFIRMED_STATUS,
+  summarizeBookings,
+} from "./booking-status.js";
 const MAX_TRANSACTION_ATTEMPTS = 3;
 
 export type BookingErrorCode =
@@ -11,7 +16,8 @@ export type BookingErrorCode =
   | "SLOT_FULL"
   | "DUPLICATE_BOOKING"
   | "BOOKING_NOT_FOUND"
-  | "BOOKING_ALREADY_CANCELLED";
+  | "BOOKING_ALREADY_CANCELLED"
+  | "BOOKING_ALREADY_COMPLETED";
 
 export class BookingError extends Error {
   constructor(
@@ -63,7 +69,7 @@ export async function createBooking(input: CreateBookingInput) {
             where: {
               userId: input.userId,
               slotId: input.slotId,
-              status: CONFIRMED_STATUS,
+              status: { in: CAPACITY_OCCUPYING_STATUSES },
             },
             select: { id: true },
           });
@@ -75,14 +81,14 @@ export async function createBooking(input: CreateBookingInput) {
             );
           }
 
-          const confirmedCount = await tx.booking.count({
+          const occupiedCount = await tx.booking.count({
             where: {
               slotId: input.slotId,
-              status: CONFIRMED_STATUS,
+              status: { in: CAPACITY_OCCUPYING_STATUSES },
             },
           });
 
-          if (confirmedCount >= slot.capacity) {
+          if (occupiedCount >= slot.capacity) {
             throw new BookingError("SLOT_FULL", "Slot is fully booked");
           }
 
@@ -144,17 +150,24 @@ export async function cancelBooking(bookingId: number) {
     throw new BookingError("BOOKING_NOT_FOUND", "Booking not found");
   }
 
-  if (booking.status !== CONFIRMED_STATUS) {
+  if (booking.status === CANCELLED_STATUS) {
     throw new BookingError(
       "BOOKING_ALREADY_CANCELLED",
       "Booking has already been cancelled",
     );
   }
 
+  if (booking.status === COMPLETED_STATUS) {
+    throw new BookingError(
+      "BOOKING_ALREADY_COMPLETED",
+      "A completed booking cannot be cancelled",
+    );
+  }
+
   return prisma.booking.update({
     where: { id: bookingId },
     data: {
-      status: "CANCELLED",
+      status: CANCELLED_STATUS,
       cancelledAt: new Date(),
     },
     include: {
@@ -164,12 +177,83 @@ export async function cancelBooking(bookingId: number) {
   });
 }
 
+export async function completeBooking(bookingId: number) {
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    select: { id: true, status: true },
+  });
+
+  if (!booking) {
+    throw new BookingError("BOOKING_NOT_FOUND", "Booking not found");
+  }
+
+  if (booking.status === CANCELLED_STATUS) {
+    throw new BookingError(
+      "BOOKING_ALREADY_CANCELLED",
+      "A cancelled booking cannot be completed",
+    );
+  }
+
+  if (booking.status === COMPLETED_STATUS) {
+    throw new BookingError(
+      "BOOKING_ALREADY_COMPLETED",
+      "Booking has already been completed",
+    );
+  }
+
+  return prisma.booking.update({
+    where: { id: bookingId },
+    data: { status: COMPLETED_STATUS },
+    include: {
+      user: true,
+      slot: true,
+    },
+  });
+}
+
+export async function getTodayBookings() {
+  const bangkokDate = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  const dayStart = new Date(`${bangkokDate}T00:00:00+07:00`);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1_000);
+
+  const bookings = await prisma.booking.findMany({
+    where: {
+      slot: {
+        startAt: {
+          gte: dayStart,
+          lt: dayEnd,
+        },
+      },
+    },
+    orderBy: {
+      slot: {
+        startAt: "asc",
+      },
+    },
+    include: {
+      user: true,
+      slot: true,
+    },
+  });
+
+  return {
+    day: bangkokDate,
+    summary: summarizeBookings(bookings),
+    bookings,
+  };
+}
+
 export async function getSlotsWithAvailability() {
   const slots = await prisma.slot.findMany({
     orderBy: { startAt: "asc" },
     include: {
       bookings: {
-        where: { status: "CONFIRMED" },
+        where: { status: { in: CAPACITY_OCCUPYING_STATUSES } },
         select: { id: true },
       },
     },

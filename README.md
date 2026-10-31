@@ -1,275 +1,77 @@
-# LINE Booking System POC
+# LINE Booking สำหรับร้านตัดผม
 
-ระบบต้นแบบสำหรับจองคิวผ่าน LINE Official Account โดยแบ่งการพัฒนาออกเป็น 2 ส่วน คือ **Backend** และ **Frontend**
+โปรเจกต์นี้เป็นระบบจัดการคิวร้านตัดผมแบบวันต่อวัน ลูกค้าดูเวลาว่างและจองคิวผ่าน LINE Official Account ส่วนช่างหรือผู้ดูแลร้านใช้ Admin Dashboard สำหรับเปิดช่วงเวลา ดูจำนวนที่ว่าง ติดตามคิวของวันนี้ และกดยืนยันเมื่อให้บริการลูกค้าเสร็จแล้ว
 
-> ลำดับการพัฒนา: ทำ Backend และ REST API ให้พร้อมใช้งานก่อน แล้วจึงเริ่มพัฒนา Frontend
+เป้าหมายของระบบคือทำให้ร้านจัดการคิวประจำวันได้จากหน้าจอเดียว โดยไม่ต้องจดคิวแยกในกระดาษหรือแชต ลูกค้าใช้ LINE ซึ่งเป็นช่องทางที่คุ้นเคยอยู่แล้ว และข้อมูลการจองทั้งหมดถูกเก็บไว้ในฐานข้อมูลเดียวกัน
 
-## ภาพรวมระบบ
+## การทำงานของระบบ
 
-```text
-ผู้ใช้
-  ├── LINE Official Account
-  │     ↓
-  │   LINE Messaging API / Webhook
-  │
-  └── Admin Dashboard (Bun + React)
-          ↓
-Bun + Express Backend
-  ├── REST API
-  ├── Booking Service
-  ├── Slot Service
-  └── LINE Service
-          ↓
-        Prisma
-          ↓
-        SQLite
-```
+เมื่อเริ่มวัน ผู้ดูแลร้านสร้าง Slot โดยกำหนดเวลาเริ่ม เวลาสิ้นสุด และจำนวนลูกค้าที่รับได้ Slot ที่สร้างจะเป็นของวันปัจจุบันตามเวลา Asia/Bangkok จึงไม่ต้องเลือกวันที่ล่วงหน้า
 
-## ลำดับการพัฒนา
+เมื่อลูกค้าส่งข้อความขอดูคิวใน LINE ระบบจะแสดง Slot ที่ยังเหลือที่ว่าง ลูกค้าเลือก Slot ที่ต้องการแล้วระบบสร้างการจองพร้อมผูก LINE User ID เข้ากับลูกค้า การจองใหม่มีสถานะ `CONFIRMED` ซึ่งในหน้า Admin แสดงว่า “รอให้บริการ”
 
-1. **Backend** — ฐานข้อมูล, REST API, LINE Webhook และระบบแจ้งเตือน
-2. **Frontend** — หน้าจอผู้ใช้และการเชื่อมต่อ REST API
-
-## โครงสร้างโปรเจกต์
+หน้า Dashboard แสดงเฉพาะคิวของวันนี้และเรียงตามเวลา เมื่อช่างตัดผมเสร็จ ช่างกดปุ่ม “เสร็จแล้ว” ระบบจะเปลี่ยนสถานะเป็น `COMPLETED` การจองที่เสร็จแล้วจะยังนับว่าใช้ความจุของ Slot เดิม เพื่อไม่ให้ช่วงเวลานั้นกลับมาเปิดรับการจองซ้ำ ส่วนการจองที่ถูกยกเลิกจะมีสถานะ `CANCELLED` และคืนที่ว่างให้ Slot
 
 ```text
-line-api/
-├── backend/           # Express API, Prisma และ SQLite
-│   ├── prisma/
-│   ├── src/
-│   ├── .env.example
-│   ├── .env
-│   └── package.json
-├── frontend/          # พื้นที่สำหรับพัฒนาเว็บใน Phase 2
-├── .gitignore
-└── README.md
+ผู้ดูแลสร้าง Slot ของวันนี้
+        ↓
+ลูกค้าดูเวลาว่างและจองผ่าน LINE
+        ↓
+Backend ตรวจการจองซ้ำและจำนวนที่ว่าง
+        ↓
+การจองปรากฏใน Admin Dashboard
+        ↓
+ช่างให้บริการและกด “เสร็จแล้ว”
 ```
 
----
+## โครงสร้างระบบ
 
-# Phase 1: Backend
+Backend ใช้ Bun, Express, TypeScript, Prisma และ SQLite ทำหน้าที่รับ LINE Webhook จัดการ Slot และ Booking ตรวจสอบลายเซ็นจาก LINE ป้องกันการจองซ้ำ และป้องกันการจองเกินจำนวนที่รับได้
 
-> สถานะ: กำลังพัฒนา — ให้ทำ Phase นี้ให้เสร็จก่อนเริ่ม Frontend
-
-## Step B1: สร้าง Bun + Express + TypeScript
-
-- [X] สร้างโปรเจกต์และใช้ Bun เป็น runtime/package manager
-- [X] ติดตั้ง Express
-- [X] ติดตั้ง TypeScript
-- [X] สร้าง Express Server
-- [X] เปิดใช้ `express.json()`
-- [X] ทดสอบเซิร์ฟเวอร์ที่ `http://localhost:3000`
-
-## Step B2: สร้างฐานข้อมูล SQLite และ Prisma
-
-- [X] ติดตั้ง Prisma และ Prisma Client
-- [X] ติดตั้ง SQLite Adapter
-- [X] สร้าง `prisma.config.ts`
-- [X] สร้าง `prisma/schema.prisma`
-- [X] กำหนดค่า SQLite Database
-- [X] สร้าง Migration
-- [X] สร้างไฟล์ฐานข้อมูล SQLite
-- [X] สร้างโมเดล `User`, `Slot` และ `Booking`
-- [X] เชื่อม Prisma Client เข้ากับ Backend
-
-## Step B3: สร้าง REST API สำหรับจัดการคิว
-
-- [X] สร้าง API ดูช่วงเวลาที่ว่าง — `GET /slots`
-- [X] สร้าง API เพิ่มช่วงเวลา — `POST /slots`
-- [X] สร้าง API ลบช่วงเวลาที่ยังไม่มีการจอง — `DELETE /slots/:id`
-- [X] สร้าง API จองคิว — `POST /bookings`
-- [X] สร้าง API ดูรายละเอียดการจอง — `GET /bookings/:id`
-- [X] สร้าง API ดูการจองของผู้ใช้ — `GET /users/:userId/bookings`
-- [X] สร้าง API ยกเลิกการจอง — `DELETE /bookings/:id`
-- [X] ป้องกันผู้ใช้จองช่วงเวลาเดิมซ้ำและป้องกันการจองเกิน `capacity`
-- [X] ตรวจสอบ input และจัดการกรณีไม่พบข้อมูลสำหรับ API ที่สร้างแล้ว
-- [X] ทดสอบ REST API ด้วย Postman หรือเครื่องมืออื่น
-
-## Step B4: ตั้งค่า LINE Official Account และ Messaging API
-
-- [X] สร้าง LINE Official Account สำหรับระบบจองคิว
-- [X] เปิดใช้งาน Messaging API ให้กับ LINE Official Account
-- [X] สร้าง Provider และ Messaging API Channel ใน LINE Developers
-- [X] เก็บ Channel Secret และ Channel Access Token ไว้ใน `.env`
-- [X] ตรวจสอบว่า `.env` ไม่ถูกอัปโหลดขึ้น GitHub
-
-## Step B5: เชื่อม Webhook กับ LINE
-
-- [X] สร้าง `POST /webhook`
-- [X] ตรวจสอบ Webhook Signature
-- [X] ใช้ Cloudflare Tunnel หรือบริการอื่นเพื่อเปิด HTTPS URL
-- [X] เชื่อมต่อ Webhook URL กับ LINE Developers
-- [X] เปิดใช้งาน Webhook ใน LINE Developers
-- [X] อ่านข้อความและ LINE User ID จาก Webhook
-- [X] ตอบกลับข้อความ `Hello` ผ่าน Reply API
-- [X] ทดสอบการส่งข้อความจริงผ่าน LINE
-
-## Step B6: เชื่อม LINE เข้ากับระบบจองคิว
-
-- [X] เมื่อผู้ใช้ขอดูคิว ให้ดึงข้อมูลช่วงเวลาที่ว่าง
-- [X] เมื่อผู้ใช้เลือกเวลา ให้สร้างรายการจอง
-- [X] บันทึก LINE User ID กับข้อมูลการจอง
-- [X] ส่งผลลัพธ์การจองกลับไปยังผู้ใช้ผ่าน LINE
-- [X] ป้องกันการจองช่วงเวลาเดียวกันซ้ำ
-
-## Step B7: สร้าง Flex Message
-
-- [X] สร้าง Flex Message แสดงช่วงเวลาที่ว่าง
-- [X] เพิ่มปุ่มเลือกและจองคิว
-- [X] สร้าง Flex Message ยืนยันการจอง
-- [X] สร้าง Flex Message แสดงรายละเอียดหรือสถานะการจอง
-- [X] ทดสอบการแสดงผลบนโทรศัพท์
-
-## Step B8: เพิ่มระบบแจ้งเตือน (Push API)
-
-- [ ] สร้าง Service สำหรับส่ง Push Message
-- [ ] ส่งข้อความแจ้งเตือนยืนยันการจอง
-- [ ] ส่งแจ้งเตือนก่อนถึงเวลานัดหมาย
-- [ ] ส่งแจ้งเตือนเมื่อมีการยกเลิกหรือเปลี่ยนแปลงคิว
-- [ ] จัดการกรณี User ID หรือ Token ไม่ถูกต้อง
-
-## Step B9: ทดสอบ Backend แบบครบ Flow
-
-- [ ] ผู้ใช้เปิดแชตกับ LINE Official Account
-- [ ] บอทแสดงช่วงเวลาที่ว่าง
-- [ ] ผู้ใช้เลือกและจองคิว
-- [ ] ระบบบันทึกข้อมูลลง SQLite
-- [ ] บอทยืนยันการจองด้วย Flex Message
-- [ ] ระบบป้องกันการจองซ้ำ
-- [ ] ระบบส่ง Push Notification ได้
-- [ ] REST API มีรูปแบบ Response และ Error ที่พร้อมให้ Frontend ใช้งาน
-
-## สถานะปัจจุบัน (Checkpoint: 9 กันยายน 2026)
-
-ขณะนี้ทำ **Step B1 ถึง Step B5** เสร็จแล้ว และกำลังเริ่ม **Step B6: เชื่อม LINE เข้ากับระบบจองคิว** โดยงานที่ทำเสร็จและตรวจสอบแล้วมีดังนี้:
-
-- Prisma models: `User`, `Slot` และ `Booking`
-- Prisma Client สำหรับ SQLite ผ่าน `@prisma/adapter-libsql`
-- Database health check และการเชื่อมต่อ/ปิดการเชื่อมต่อ Prisma ตาม lifecycle ของ server
-- Slot API สำหรับดู เพิ่ม และลบช่วงเวลา
-- Booking API สำหรับสร้างการจอง
-- Validation ของ request, การตรวจ user/slot, การกันผู้ใช้จอง slot เดิมซ้ำ และการกันยอดจองเกิน capacity
-- ใช้ Serializable transaction และ retry เมื่อ transaction conflict
-- สร้าง `POST /webhook` สำหรับรับ event จาก LINE
-- ตรวจสอบ LINE Webhook Signature ด้วย HMAC-SHA256 จาก raw request body
-- เชื่อมต่อ Cloudflare Tunnel เพื่อเปิด HTTPS URL สำหรับทดสอบ Webhook
-- ตั้งค่า Webhook URL และเปิดใช้งาน Webhook ใน LINE Developers
-- อ่านประเภท event, LINE User ID และข้อความจาก Webhook
-- เชื่อมต่อ LINE Reply API และทดสอบส่งข้อความตอบกลับจริงผ่าน LINE
-
-### API ที่ใช้งานได้แล้ว
-
-| Method     | Endpoint                    | สถานะ/หน้าที่                                                                    |
-| ---------- | --------------------------- | -------------------------------------------------------------------------------------------- |
-| `GET`    | `/`                       | ตรวจสอบว่า server ทำงาน                                                       |
-| `GET`    | `/health/db`              | ตรวจสอบการเชื่อมต่อฐานข้อมูล                                     |
-| `GET`    | `/slots`                  | ดู slot พร้อม`bookedCount` และ `remaining`                                     |
-| `POST`   | `/slots`                  | เพิ่ม slot โดยรับ`date`, `startTime`, `endTime`, `capacity`               |
-| `DELETE` | `/slots/:id`              | ลบ slot ที่ยังไม่มี booking                                                     |
-| `POST`   | `/bookings`               | จอง slot โดยรับ`userId`, `slotId` และ `note` (ถ้ามี)                  |
-| `GET`    | `/bookings/:id`           | ดูรายละเอียดการจองพร้อมข้อมูลผู้ใช้และช่วงเวลา |
-| `GET`    | `/users/:userId/bookings` | ดูรายการจองทั้งหมดของผู้ใช้                                       |
-| `DELETE` | `/bookings/:id`           | ยกเลิกการจองที่มีสถานะ`CONFIRMED`                                    |
-| `POST`   | `/webhook`                | รับ event จาก LINE และอ่านชนิด event, User ID และข้อความ          |
-
-### งานถัดไป
-
-1. ทดสอบกรณีจองซ้ำและจองเกิน capacity ผ่าน LINE จริง
-2. สร้าง Flex Message สำหรับรายการ slot และผลยืนยันการจอง
-3. เพิ่มระบบแจ้งเตือนด้วย Push API
-
-## วิธีรัน Backend
-
-1. เข้าโฟลเดอร์ Backend
-
-   ```bash
-   cd backend
-   ```
-2. ติดตั้ง dependencies
-
-   ```bash
-   bun install
-   ```
-3. คัดลอก `.env.example` เป็น `.env` ภายใน `backend/`
-
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-4. รัน Migration และ Generate Prisma Client
-
-   ```bash
-   bunx prisma migrate dev --config prisma.config.ts
-   bunx prisma generate --config prisma.config.ts
-   ```
-5. เริ่ม Development Server
-
-   ```bash
-   bun run dev
-   ```
-6. ตรวจสอบ Server และ Database
-
-   ```text
-   GET http://localhost:3000/
-   GET http://localhost:3000/health/db
-   ```
-
-## Backend Definition of Done
-
-เริ่มทำ Frontend ได้เมื่อเงื่อนไขต่อไปนี้ครบ:
-
-- [ ] REST API สำหรับ Slot และ Booking ใช้งานได้ครบ
-- [ ] Validation และ Error Response มีรูปแบบชัดเจน
-- [ ] ป้องกันการจองซ้ำได้
-- [ ] LINE Webhook ใช้งานร่วมกับระบบจองได้
-- [ ] ทดสอบ Backend flow หลักผ่านแล้ว
-- [ ] มีข้อมูล API ที่ Frontend ต้องใช้ครบ
-
----
-
-# Phase 2: Frontend
-
-> สถานะ: กำลังพัฒนา Admin Dashboard ด้วย Bun + React + shadcn/ui + Tailwind CSS
-
-## Step F1: กำหนดขอบเขตและสร้างโปรเจกต์ Frontend
-
-- [X] กำหนด Admin Dashboard สำหรับดูภาพรวมคิวลูกค้า
-- [X] เลือก React + TypeScript + shadcn/ui + Tailwind CSS โดยใช้ Bun เป็นตัวรัน
-- [X] สร้างโปรเจกต์โครงสร้างเรียบง่ายใน `frontend`
-
-## Step F2: สร้างหน้าจอ Admin
-
-- [X] หน้า Dashboard แสดงยอดจองทั้งหมด รอดำเนินการ และเสร็จสิ้น
-- [X] ตารางลูกค้า เวลา และสถานะแบบข้อมูลสมมติ
-- [ ] หน้าดูช่วงเวลาที่ว่าง
-- [ ] หน้าสร้างและยืนยันการจอง
-- [ ] หน้าดูรายละเอียดการจอง
-- [ ] หน้าดูประวัติการจองของผู้ใช้
-- [ ] ปุ่มยกเลิกการจอง
-
-## Step F3: เชื่อม Frontend กับ Backend
-
-- [ ] เชื่อม `GET /slots`
-- [ ] เชื่อม `POST /slots`
-- [ ] เชื่อม `POST /bookings`
-- [ ] เชื่อม `GET /bookings/:id`
-- [ ] เชื่อม `GET /users/:userId/bookings`
-- [ ] เชื่อม `DELETE /bookings/:id`
-- [ ] แสดงสถานะ Loading, Empty และ Error สำหรับรายการ Slot
-
-## Step F4: ทดสอบ Frontend แบบครบ Flow
-
-- [ ] ผู้ใช้ดูช่วงเวลาที่ว่างได้
-- [ ] ผู้ใช้จองคิวและเห็นผลยืนยันได้
-- [ ] ผู้ใช้ดูและยกเลิกการจองได้
-- [ ] Frontend แสดง Error จาก Backend ได้ถูกต้อง
-- [ ] ทดสอบการแสดงผลบนมือถือและหน้าจอขนาดต่าง ๆ
-
-## เป้าหมายสุดท้าย
+Frontend เป็น Admin Dashboard ที่สร้างด้วย Next.js App Router, TypeScript, Tailwind CSS และ shadcn/ui Browser เรียก Next.js Route Handler ก่อนส่งต่อไปยัง Express Backend เพื่อลดปัญหา CORS และเก็บตำแหน่ง Backend ไว้ใน environment variable เดียว
 
 ```text
-Backend พร้อมใช้งาน
-→ LINE และ Frontend เรียกใช้ REST API ชุดเดียวกัน
-→ Prisma บันทึกข้อมูลลง SQLite
-→ ผู้ใช้จอง ดู และยกเลิกคิวได้
-→ ระบบส่งข้อความยืนยันและแจ้งเตือนผ่าน LINE
+LINE Official Account ── Webhook ──┐
+                                   ├── Express Backend ── Prisma ── SQLite
+Admin Dashboard ── Next.js API ────┘
 ```
+
+โค้ดฝั่ง Backend อยู่ใน `backend/` ส่วนหน้า Admin อยู่ใน `frontend/` จุดเริ่มต้นของ Express app คือ `backend/src/app.ts` และเส้นทางหลักของ Admin คือ `/dashboard`, `/slots` และ `/add-slot`
+
+## API ที่ Admin ใช้งาน
+
+การจัดการ Slot ใช้ `GET /slots`, `POST /slots` และ `DELETE /slots/:id` การดึงคิวประจำวันใช้ `GET /admin/bookings` และการยืนยันงานเสร็จใช้ `PATCH /admin/bookings/:id/complete`
+
+API สำหรับ flow การจองประกอบด้วย `POST /bookings`, `GET /bookings/:id`, `GET /users/:userId/bookings` และ `DELETE /bookings/:id` ส่วน `POST /webhook` เป็นทางเข้าของ event จาก LINE Messaging API
+
+## การรัน Backend
+
+สร้างไฟล์ `backend/.env` จาก `backend/.env.example` แล้วใส่ค่า LINE Channel Secret, Channel Access Token และการเชื่อมต่อฐานข้อมูล จากนั้นรันคำสั่งต่อไปนี้
+
+```powershell
+cd backend
+bun install
+bunx prisma migrate dev --config prisma.config.ts
+bunx prisma generate --config prisma.config.ts
+bun run dev
+```
+
+Backend เปิดที่ `http://localhost:3000` และตรวจสอบการเชื่อมต่อฐานข้อมูลได้ที่ `GET http://localhost:3000/health/db`
+
+## การรัน Admin Dashboard
+
+เปิด PowerShell อีกหน้าต่างหนึ่งและรันคำสั่งต่อไปนี้
+
+```powershell
+cd frontend
+bun install
+bun run dev
+```
+
+Admin Dashboard เปิดที่ `http://127.0.0.1:5173` หาก Backend ไม่ได้เปิดที่ `http://localhost:3000` ให้กำหนด `BACKEND_URL` ใน environment ของ frontend
+
+## ขอบเขตปัจจุบัน
+
+ระบบนี้ยังเป็น POC สำหรับพิสูจน์ flow การจองคิวร้านตัดผม ยังไม่มีระบบล็อกอินและสิทธิ์ผู้ใช้งานสำหรับ Admin และยังไม่มีระบบแจ้งเตือนล่วงหน้าแบบตั้งเวลา ข้อมูลชื่อจาก LINE อาจยังไม่มีในบางบัญชี หน้า Admin จึงใช้ส่วนท้ายของ LINE User ID เป็นชื่อชั่วคราวเมื่อไม่มี display name
+
+ก่อนนำไปใช้งานจริงควรเพิ่ม authentication, การทดสอบ API แบบ integration, การจัดการ secret สำหรับ production และฐานข้อมูลที่เหมาะกับการใช้งานหลายผู้ใช้พร้อมกัน

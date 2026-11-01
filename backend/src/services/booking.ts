@@ -49,10 +49,10 @@ export async function createBooking(input: CreateBookingInput) {
         async (tx) => {
           const slot = await tx.slot.findUnique({
             where: { id: input.slotId },
-            select: { id: true, capacity: true },
+            select: { id: true, capacity: true, deletedAt: true },
           });
 
-          if (!slot) {
+          if (!slot || slot.deletedAt !== null) {
             throw new BookingError("SLOT_NOT_FOUND", "Slot not found");
           }
 
@@ -250,7 +250,9 @@ export async function getTodayBookings() {
 
 export async function getSlotsWithAvailability() {
   const slots = await prisma.slot.findMany({
+    where: { deletedAt: null },
     orderBy: { startAt: "asc" },
+    omit: { deletedAt: true },
     include: {
       bookings: {
         where: { status: { in: CAPACITY_OCCUPYING_STATUSES } },

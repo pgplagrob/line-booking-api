@@ -1,14 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the `Task` table. If the table is not empty, all the data it contains will be lost.
-
-*/
--- DropTable
-PRAGMA foreign_keys=off;
-DROP TABLE "Task";
-PRAGMA foreign_keys=on;
-
 -- CreateTable
 CREATE TABLE "User" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +14,8 @@ CREATE TABLE "Slot" (
     "endAt" DATETIME NOT NULL,
     "capacity" INTEGER NOT NULL DEFAULT 1,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "updatedAt" DATETIME NOT NULL,
+    "deletedAt" DATETIME
 );
 
 -- CreateTable
@@ -46,7 +36,7 @@ CREATE TABLE "Booking" (
 CREATE UNIQUE INDEX "User_lineUserId_key" ON "User"("lineUserId");
 
 -- CreateIndex
-CREATE INDEX "Slot_startAt_idx" ON "Slot"("startAt");
+CREATE INDEX "Slot_deletedAt_startAt_idx" ON "Slot"("deletedAt", "startAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Booking_bookingCode_key" ON "Booking"("bookingCode");

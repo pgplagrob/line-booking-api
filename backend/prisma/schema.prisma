@@ -28,10 +28,11 @@ model Slot {
   capacity  Int       @default(1)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   bookings Booking[]
 
-  @@index([startAt])
+  @@index([deletedAt, startAt])
 }
 
 model Booking {

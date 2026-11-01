@@ -157,33 +157,26 @@ bookingRouter.delete("/slots/:id", async (req, res) => {
   }
 
   try {
-    const slot = await prisma.slot.findUnique({
-      where: { id: slotId },
-      select: {
-        id: true,
-        _count: { select: { bookings: true } },
+    const result = await prisma.slot.updateMany({
+      where: {
+        id: slotId,
+        deletedAt: null,
       },
+      data: { deletedAt: new Date() },
     });
 
-    if (!slot) {
+    if (result.count === 0) {
       res.status(404).json({ message: "Slot not found" });
       return;
     }
 
-    if (slot._count.bookings > 0) {
-      res.status(409).json({ message: "Cannot delete a slot that has bookings" });
-      return;
-    }
-
-    await prisma.slot.delete({ where: { id: slotId } });
-
     res.status(200).json({
-      message: "Slot deleted successfully",
+      message: "Slot closed successfully",
       slotId,
     });
   } catch (error) {
-    console.error("Delete slot failed:", error);
-    res.status(500).json({ message: "Cannot delete slot" });
+    console.error("Close slot failed:", error);
+    res.status(500).json({ message: "Cannot close slot" });
   }
 });
 

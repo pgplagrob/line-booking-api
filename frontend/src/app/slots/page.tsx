@@ -2,10 +2,10 @@
 
 import {
   CalendarPlus,
+  CircleOff,
   Clock3,
   LoaderCircle,
   RefreshCw,
-  Trash2,
   UsersRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -52,7 +52,7 @@ function formatTime(value: string) {
 export default function SlotsPage() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [closingId, setClosingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadSlots = useCallback(async () => {
@@ -79,14 +79,14 @@ export default function SlotsPage() {
     void loadSlots();
   }, [loadSlots]);
 
-  async function deleteSlot(slot: Slot) {
+  async function closeSlot(slot: Slot) {
     const confirmed = window.confirm(
-      `ต้องการลบ Slot เวลา ${formatTime(slot.startAt)} - ${formatTime(slot.endAt)} ใช่หรือไม่?`,
+      `ต้องการปิด Slot เวลา ${formatTime(slot.startAt)} - ${formatTime(slot.endAt)} ใช่หรือไม่? ลูกค้าจะจองเพิ่มไม่ได้ แต่ประวัติการจองเดิมยังอยู่`,
     );
 
     if (!confirmed) return;
 
-    setDeletingId(slot.id);
+    setClosingId(slot.id);
     setError(null);
 
     try {
@@ -94,7 +94,7 @@ export default function SlotsPage() {
       const data = (await response.json()) as { message?: string };
 
       if (!response.ok) {
-        throw new Error(data.message || "ไม่สามารถลบ Slot ได้");
+        throw new Error(data.message || "ไม่สามารถปิด Slot ได้");
       }
 
       setSlots((current) => current.filter((item) => item.id !== slot.id));
@@ -103,7 +103,7 @@ export default function SlotsPage() {
         deleteError instanceof Error ? deleteError.message : "เกิดข้อผิดพลาด กรุณาลองใหม่",
       );
     } finally {
-      setDeletingId(null);
+      setClosingId(null);
     }
   }
 
@@ -118,7 +118,7 @@ export default function SlotsPage() {
                 <Clock3 aria-hidden="true" className="size-5" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">จัดการ Slot</h1>
-              <p className="mt-2 text-sm text-neutral-500">เพิ่ม ดูสถานะ และลบช่วงเวลาที่เปิดให้จอง</p>
+              <p className="mt-2 text-sm text-neutral-500">เพิ่ม ดูสถานะ และปิดช่วงเวลาที่ไม่ต้องการรับจองเพิ่ม</p>
             </div>
 
             <Link href="/add-slot" className={buttonVariants({ className: "w-full sm:w-auto" })}>
@@ -184,15 +184,15 @@ export default function SlotsPage() {
                           type="button"
                           variant="ghost"
                           size="icon"
-                          aria-label={`ลบ Slot เวลา ${formatTime(slot.startAt)}`}
-                          disabled={deletingId === slot.id}
-                          onClick={() => void deleteSlot(slot)}
+                          aria-label={`ปิด Slot เวลา ${formatTime(slot.startAt)}`}
+                          disabled={closingId === slot.id}
+                          onClick={() => void closeSlot(slot)}
                           className="text-neutral-400 hover:bg-red-500/10 hover:text-red-400"
                         >
-                          {deletingId === slot.id ? (
+                          {closingId === slot.id ? (
                             <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
                           ) : (
-                            <Trash2 aria-hidden="true" className="size-4" />
+                            <CircleOff aria-hidden="true" className="size-4" />
                           )}
                         </Button>
                       </TableCell>
